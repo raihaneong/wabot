@@ -5,10 +5,10 @@ const qrcode = require("qrcode-terminal");
 
 const OPENROUTER_MODEL = process.env.OPENROUTER_MODEL || "none";
 const OPENROUTER_TIMEOUT_MS =
-  Number(process.env.OPENROUTER_TIMEOUT_MS) || 30_000;
+Number(process.env.OPENROUTER_TIMEOUT_MS) || 30_000;
 
 const openrouter = new OpenRouter({
-  apiKey: process.env.OPENROUTER_API_KEY,
+apiKey: process.env.OPENROUTER_API_KEY,
 });
 
 if (!process.env.OPENROUTER_API_KEY) {
