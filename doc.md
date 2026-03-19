@@ -14,3 +14,6 @@ Sticker & out of topic => 120363426915771477@g.us
 --
 !ngomong
 B8gJV1IhpuegLxdpXFOE
+
+--
+!sticker-caption
