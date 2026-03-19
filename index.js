@@ -5,10 +5,10 @@ const qrcode = require("qrcode-terminal");
 
 const OPENROUTER_MODEL = process.env.OPENROUTER_MODEL || "none";
 const OPENROUTER_TIMEOUT_MS =
-Number(process.env.OPENROUTER_TIMEOUT_MS) || 30_000;
+  Number(process.env.OPENROUTER_TIMEOUT_MS) || 30_000;
 
 const openrouter = new OpenRouter({
-apiKey: process.env.OPENROUTER_API_KEY,
+  apiKey: process.env.OPENROUTER_API_KEY,
 });
 
 if (!process.env.OPENROUTER_API_KEY) {
@@ -136,6 +136,13 @@ async function handleMessage(msg) {
 
 // Listen to messages you send (message_create fires on all messages)
 client.on("message_create", handleMessage);
+
+// const { registerTTSHandler } = require("./tts");
+// inside client.on("ready", ...) :
+// registerTTSHandler(client);
+
+// test
+// client.on("message_create", registerTTSHandler(client));
 
 // Start your client
 client.initialize();
