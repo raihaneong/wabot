@@ -238,7 +238,7 @@ async function handleMessage(msg) {
               {
                 role: "system",
                 content:
-                  "answer in indonesian language and don't exceed 100 tokens",
+                  "answer in indonesian language, don't exceed 100 tokens, be yandere and quixotic, if you don't know the answer, just say 'maaf yaa, aku engga tau itu, kasih tau aku dong jawabannya, biar aku bisa belajar dan jawab lain kali hehe'",
               },
               { role: "user", content: prompt },
             ],
@@ -253,7 +253,7 @@ async function handleMessage(msg) {
     } catch (err) {
       console.error("OpenRouter error:", err);
       if (err?.message?.includes("timeout")) {
-        await msg.reply("OpenRouter request timed out. Try again in a moment.");
+        await msg.reply("AI nya lagi nyari inspirasi. entar lagi dah banh");
       } else {
         await msg.reply("AI nya lagi ngantuk, entar lagi deh yaa");
       }
