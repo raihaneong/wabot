@@ -18,8 +18,6 @@ B8gJV1IhpuegLxdpXFOE
 --
 !sticker-caption
 
-
-
 emoji black color
 modularize src
 top caption
@@ -43,10 +41,13 @@ tanya ai
 ubah pesan balasan jadi stiker dan bikin caption di bawah
 
 !sticker "blablabla"
-ubah pesan balasan jadi stiker dan bikin caption di atas 
+ubah pesan balasan jadi stiker dan bikin caption di atas
 
 !spam-sticker
 kirim 4 stiker random
+
+!gacha-sticker
+kirim 4 stiker random dari folder lokal
 
 !archive-sticker
 archive all sticker in a group
@@ -54,14 +55,13 @@ archive all sticker in a group
 !summary
 jumlah stiker terkirim di hari ini
 
-
-
 ---
+
 src/
-	tts.js
-	llm.js
-	sticker.js
-	sticker-caption.js
+tts.js
+llm.js
+sticker.js
+sticker-caption.js
 doc/
-	doc.md
+doc.md
 README.md

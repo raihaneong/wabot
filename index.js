@@ -6,6 +6,7 @@ const sharp = require("sharp");
 const ffmpeg = require("fluent-ffmpeg");
 const fs = require("fs");
 const path = require("path");
+const { exec } = require("child_process");
 
 const OPENROUTER_MODEL = process.env.OPENROUTER_MODEL || "none";
 const OPENROUTER_TIMEOUT_MS =
@@ -29,7 +30,7 @@ function withTimeout(promise, ms) {
   ]);
 }
 
-function getMaxCharsPerLine(fontSize = 80, stickerWidth = 512, padding = 40) {
+function getMaxCharsPerLine(fontSize = 80, stickerWidth = 512, padding = 20) {
   // Rough heuristic: average character width ≈ 0.6 × font size.
   const charWidth = fontSize * 0.6;
   return Math.max(1, Math.floor((stickerWidth - padding) / charWidth));
@@ -215,8 +216,10 @@ async function handleMessage(msg) {
     return msg.reply("udah aktif botnya, kenapa nich?");
   }
 
-  // AI command (any chat)
+  // AI command (personal chat only)
   if (lower.startsWith("!ai")) {
+    if (!msg.fromMe) return;
+
     console.log("AI handler triggered");
 
     const prompt = body.slice(3).trim();
@@ -238,7 +241,7 @@ async function handleMessage(msg) {
               {
                 role: "system",
                 content:
-                  "answer in indonesian language, don't exceed 100 tokens, be yandere and quixotic, if you don't know the answer, just say 'maaf yaa, aku engga tau itu, kasih tau aku dong jawabannya, biar aku bisa belajar dan jawab lain kali hehe'",
+                  "answer in indonesian language, don't exceed 100 tokens",
               },
               { role: "user", content: prompt },
             ],
@@ -262,12 +265,12 @@ async function handleMessage(msg) {
     return;
   }
 
-  // Sticker command (only in personal chat or configured group)
+  // Sticker command (only in personal chat or configured group, or bot's own messages in any group)
   const TARGET_GROUP_ID = "120363426915771477@g.us";
   const isPersonalChat = !chat.isGroup;
   const isTargetGroup = chat.isGroup && chat.id._serialized === TARGET_GROUP_ID;
 
-  if (!isPersonalChat && !isTargetGroup) return;
+  if (!isPersonalChat && !isTargetGroup && !msg.fromMe) return;
   if (lower === "!sticker") {
     console.log(
       "Sticker command triggered from:",
@@ -351,6 +354,123 @@ async function handleMessage(msg) {
       console.error("Caption sticker error:", err);
       await msg.reply("gagal bikin stiker dengan caption, jadi yaudahlah");
     }
+  }
+
+  // Gacha sticker command
+  if (lower === "!gacha-sticker") {
+    const stickersDir = "D:/mv/2/tmc/whatsapp dual stickers";
+
+    if (!fs.existsSync(stickersDir)) {
+      return msg.reply("folder stickers enggak ada");
+    }
+
+    const files = fs.readdirSync(stickersDir).filter((file) => {
+      const ext = path.extname(file).toLowerCase();
+      return [".webp", ".png", ".jpg", ".jpeg", ".gif"].includes(ext);
+    });
+
+    if (files.length === 0) {
+      return msg.reply("folder stickers kosong");
+    }
+
+    // Select 4 random stickers (or all if less than 4)
+    const numToSend = Math.min(4, files.length);
+    const selectedFiles = [];
+    const shuffled = [...files].sort(() => 0.5 - Math.random());
+    for (let i = 0; i < numToSend; i++) {
+      selectedFiles.push(shuffled[i]);
+    }
+
+    // Send each sticker
+    for (const file of selectedFiles) {
+      const filePath = path.join(stickersDir, file);
+      const media = MessageMedia.fromFilePath(filePath);
+      await chat.sendMessage(media, {
+        sendMediaAsSticker: true,
+        stickerName: "Gacha Sticker",
+        stickerAuthor: "Departemen Stira",
+      });
+    }
+
+    console.log(`✅ Sent ${numToSend} gacha stickers`);
+  }
+
+  // Download command
+  if (lower.startsWith("!dl")) {
+    const link = body.slice(3).trim();
+    if (!link) {
+      return msg.reply("kasih linknya. !dl [link]");
+    }
+
+    await chat.sendStateTyping();
+
+    const isVideoSite =
+      /youtube\.com|youtu\.be|vimeo\.com|dailymotion\.com|twitch\.tv|instagram\.com|facebook\.com|tiktok\.com/i.test(
+        link,
+      );
+    const tool = isVideoSite ? "yt-dlp" : "gallery-dl";
+    const outputTemplate = isVideoSite ? "temp.%(ext)s" : "%(title)s.%(ext)s";
+    const command = isVideoSite
+      ? `${tool} -S "res:720" -o "${outputTemplate}" "${link}"`
+      : `${tool} --range 1-1 "${link}"`; // limit to 1 for gallery-dl
+
+    console.log(`Downloading with ${tool}: ${command}`);
+
+    // Record existing files before download
+    const existingFiles = new Set(fs.readdirSync(__dirname));
+
+    exec(command, { cwd: __dirname }, async (error, stdout, stderr) => {
+      if (error) {
+        console.error(`Download error: ${error}`);
+        await msg.reply(`gagal download: ${error.message}`);
+        return;
+      }
+
+      console.log("Download stdout:", stdout);
+      if (stderr) console.log("Download stderr:", stderr);
+
+      // Find newly downloaded files (ignore known extensions)
+      const skipExtensions = [".js", ".json", ".md", ".env"];
+      const newFiles = fs
+        .readdirSync(__dirname)
+        .filter(
+          (f) =>
+            !existingFiles.has(f) &&
+            !skipExtensions.some((ext) => f.endsWith(ext)),
+        );
+
+      if (newFiles.length === 0) {
+        console.error("No new files found after download");
+        await msg.reply("file download enggak ketemu");
+        return;
+      }
+
+      const filePath = path.join(__dirname, newFiles[0]);
+      console.log(`Found downloaded file: ${filePath}`);
+
+      let sendSuccess = false;
+      try {
+        const media = MessageMedia.fromFilePath(filePath);
+        await msg.reply(media);
+        console.log("✅ Media sent successfully");
+        sendSuccess = true;
+      } catch (sendError) {
+        console.error("Send error:", sendError);
+        await msg.reply(`gagal kirim file: ${sendError.message}`);
+      } finally {
+        // Cleanup - only if send was successful
+        if (sendSuccess) {
+          try {
+            fs.unlinkSync(filePath);
+            console.log(`Cleaned up: ${filePath}`);
+          } catch (cleanupError) {
+            console.error("Cleanup error:", cleanupError);
+          }
+        } else {
+          console.warn(`File NOT deleted due to send error: ${filePath}`);
+        }
+      }
+    });
   }
 }
 
