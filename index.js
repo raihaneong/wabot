@@ -8,6 +8,7 @@ const fs = require("fs");
 const path = require("path");
 const { exec } = require("child_process");
 const { handleDownloadVideo, handleDownloadAudio } = require("./downloader");
+const { handleArchiveMedia } = require("./archive");
 
 const OPENROUTER_MODEL = process.env.OPENROUTER_MODEL || "none";
 const OPENROUTER_TIMEOUT_MS =
@@ -252,6 +253,7 @@ async function handleMessage(msg) {
       !zero
       
       semua bowleh
+      !arsip
       !dl [link]
       !dl-audio [link]
       !sticker
@@ -554,6 +556,10 @@ async function handleMessage(msg) {
     }
     return handleDownloadAudio(msg, url);
   }
+
+  if (lower === "!arsip") {
+    return handleArchiveMedia(msg);
+  }
 }
 
 // Listen to messages you send (message_create fires on all messages)
@@ -568,22 +574,3 @@ client.on("message_create", handleMessage);
 
 // Start your client
 client.initialize();
-
-// listening to all incoming messages
-// client.on("message", async (msg) => {
-//   const chat = await msg.getChat();
-//   if (chat.isGroup) {
-//     console.log("Name:", chat.name);
-//     console.log("ID:", chat.id._serialized);
-//   }
-// });
-
-// List all groups the bot is a part of and print their names and IDs
-// client.on("ready", async () => {
-//   const chats = await client.getChats();
-//   const groups = chats.filter((c) => c.isGroup);
-
-//   groups.forEach((g) => {
-//     console.log(`${g.name} => ${g.id._serialized}`);
-//   });
-// })
