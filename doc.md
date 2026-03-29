@@ -37,7 +37,7 @@ ubah pesan balasan jadi stiker
 !ai blablabla
 tanya ai
 
-!sticker blablabla
+!sticker-caption blablabla
 ubah pesan balasan jadi stiker dan bikin caption di bawah
 
 !sticker "blablabla"
@@ -48,6 +48,15 @@ kirim 4 stiker random
 
 !gacha-sticker
 kirim 4 stiker random dari folder lokal
+
+!gacha-sticker-10
+kirim 10 stiker random dari folder lokal
+
+!za-warudo
+only admin can send message
+
+!zero
+all member can send message
 
 !archive-sticker
 archive all sticker in a group

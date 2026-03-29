@@ -7,6 +7,7 @@ const ffmpeg = require("fluent-ffmpeg");
 const fs = require("fs");
 const path = require("path");
 const { exec } = require("child_process");
+const { handleDownloadVideo, handleDownloadAudio } = require("./downloader");
 
 const OPENROUTER_MODEL = process.env.OPENROUTER_MODEL || "none";
 const OPENROUTER_TIMEOUT_MS =
@@ -15,6 +16,13 @@ const OPENROUTER_TIMEOUT_MS =
 const openrouter = new OpenRouter({
   apiKey: process.env.OPENROUTER_API_KEY,
 });
+
+// Global mute mode: when true, bot ignores incoming messages (except itself)
+let isMuted = false;
+
+// Global gacha control: separate cooldowns for each gacha command
+let gachaSticker5CooldownUntil = null; // 5 min cooldown for !gacha-sticker
+let gachaSticker10CooldownUntil = null; // 10 min cooldown for !gacha-sticker-10
 
 if (!process.env.OPENROUTER_API_KEY) {
   console.error("Missing OPENROUTER_API_KEY in .env");
@@ -142,15 +150,18 @@ async function addCaptionToImage(mediaData, captionText, fontSize = 80) {
 }
 
 async function createWebpStickerFromMedia(mediaData, mimeType, captionText) {
-  const fontSize = 80;
+  const fontSize = 60;
   const maxChars = getMaxCharsPerLine(fontSize);
   const lines = wrapCaption(captionText, maxChars, 2);
   const lineHeight = fontSize + 10;
-  const yStart = 512 - 20 - (lines.length - 1) * lineHeight;
-  const rawText = lines.join("\\n");
+  const yStart = 512 - 50 - (lines.length - 1) * lineHeight;
+  const rawText = lines.join("\n");
   const drawText = escapeFfmpegDrawtext(rawText);
   const hasStroke = !isEmojiOnly(captionText);
   const strokeParams = hasStroke ? ":bordercolor=black:borderw=3" : "";
+  const fontFile = isEmojiOnly(captionText)
+    ? "C\\:/Windows/Fonts/seguiemj.ttf"
+    : "C\\:/Windows/Fonts/arial.ttf";
 
   // For images, we can do this faster/stabler via sharp + SVG.
   if (mimeType.startsWith("image/")) {
@@ -170,7 +181,7 @@ async function createWebpStickerFromMedia(mediaData, mimeType, captionText) {
       .videoFilters([
         "scale=512:512:force_original_aspect_ratio=decrease",
         "pad=512:512:(ow-iw)/2:(oh-ih)/2",
-        `drawtext=text='${drawText}':fontfile='C\\:/Windows/Fonts/arial.ttf':fontsize=${fontSize}:fontcolor=white:x=(w-text_w)/2:y=${yStart}${strokeParams}`,
+        `drawtext=text='${drawText}':fontfile='${fontFile}':fontsize=${fontSize}:fontcolor=white:x=(w-text_w)/2:y=${yStart}${strokeParams}`,
         "fps=15",
       ])
       .duration(3)
@@ -205,15 +216,56 @@ async function createWebpStickerFromMedia(mediaData, mimeType, captionText) {
   return base64;
 }
 
+async function videoDownload(msg) {}
+
 // Handle all messages including your own
 async function handleMessage(msg) {
   const chat = await msg.getChat();
   const body = (msg.body || "").trim();
   const lower = body.toLowerCase();
 
+  // Mute mode: ignore non-bot messages when !udahan active
+  if (isMuted && !msg.fromMe) {
+    return;
+  }
+
   // Simple ping command
   if (lower === "!test") {
     return msg.reply("udah aktif botnya, kenapa nich?");
+  }
+
+  // Mute bot command
+  if (lower === "!tidur") {
+    isMuted = true;
+    return msg.reply("mau mancing dulu ya ges");
+  }
+
+  if (lower === "!bangun") {
+    isMuted = false;
+    return msg.reply("aku bangun");
+  }
+
+  if (lower === "!menu") {
+    return msg.reply(`
+      yang admin admin aja
+      !za-warudo
+      !zero
+      
+      semua bowleh
+      !sticker
+      !sticker-caption [text]
+      !gacha-sticker
+      !gacha-sticker-10
+      !dl [link]
+      !dl-audio [link]
+      !kick-dia
+      !test
+      !tidur
+      
+      yang bot bot aja
+      !ai
+      !bangun
+    `);
   }
 
   // AI command (personal chat only)
@@ -356,12 +408,13 @@ async function handleMessage(msg) {
     }
   }
 
-  // Gacha sticker command
-  if (lower === "!gacha-sticker") {
+  // Gacha sticker helper
+  async function sendGachaStickers(chat, limit) {
     const stickersDir = "D:/mv/2/tmc/whatsapp dual stickers";
 
     if (!fs.existsSync(stickersDir)) {
-      return msg.reply("folder stickers enggak ada");
+      await chat.sendMessage("folder stickers enggak ada");
+      return;
     }
 
     const files = fs.readdirSync(stickersDir).filter((file) => {
@@ -370,21 +423,18 @@ async function handleMessage(msg) {
     });
 
     if (files.length === 0) {
-      return msg.reply("folder stickers kosong");
+      await chat.sendMessage("folder stickers kosong");
+      return;
     }
 
-    // Select 4 random stickers (or all if less than 4)
-    const numToSend = Math.min(4, files.length);
-    const selectedFiles = [];
+    const numToSend = Math.min(limit, files.length);
     const shuffled = [...files].sort(() => 0.5 - Math.random());
-    for (let i = 0; i < numToSend; i++) {
-      selectedFiles.push(shuffled[i]);
-    }
+    const selectedFiles = shuffled.slice(0, numToSend);
 
-    // Send each sticker
     for (const file of selectedFiles) {
       const filePath = path.join(stickersDir, file);
       const media = MessageMedia.fromFilePath(filePath);
+      console.log(`Sending sticker: ${filePath}`);
       await chat.sendMessage(media, {
         sendMediaAsSticker: true,
         stickerName: "Gacha Sticker",
@@ -395,82 +445,113 @@ async function handleMessage(msg) {
     console.log(`✅ Sent ${numToSend} gacha stickers`);
   }
 
-  // Download command
-  if (lower.startsWith("!dl")) {
-    const link = body.slice(3).trim();
-    if (!link) {
+  function formatMsAsMinSecond(ms) {
+    const totalSeconds = Math.ceil(ms / 1000);
+    const minutes = Math.floor(totalSeconds / 60);
+    const seconds = totalSeconds % 60;
+    return `${minutes} menit ${seconds} detik`;
+  }
+
+  // Gacha sticker command with 5 min cooldown
+  if (lower === "!gacha-sticker") {
+    if (gachaSticker5CooldownUntil && Date.now() < gachaSticker5CooldownUntil) {
+      const remainingMs = gachaSticker5CooldownUntil - Date.now();
+      return msg.reply(`Gacha cooldown: ${formatMsAsMinSecond(remainingMs)}`);
+    }
+    gachaSticker5CooldownUntil = Date.now() + 2 * 60 * 1000; // 2 minutes
+    await sendGachaStickers(chat, 4);
+    return;
+  }
+
+  // Gacha sticker 10 command with 10 min cooldown
+  if (lower === "!gacha-sticker-10") {
+    if (
+      gachaSticker10CooldownUntil &&
+      Date.now() < gachaSticker10CooldownUntil
+    ) {
+      const remainingMs = gachaSticker10CooldownUntil - Date.now();
+      return msg.reply(`Gacha cooldown: ${formatMsAsMinSecond(remainingMs)}`);
+    }
+    gachaSticker10CooldownUntil = Date.now() + 5 * 60 * 1000; // 5 minutes
+    await sendGachaStickers(chat, 10);
+    return;
+  }
+
+  // Handle the !za-warudo command
+  if (lower === "!za-warudo") {
+    if (!chat.isGroup) {
+      return msg.reply("ZA WARUDO only works in groups!");
+    }
+    // Send the audio file
+    const audioPath = path.join(__dirname, "assets", "za-warudo.mp3");
+    if (!fs.existsSync(audioPath)) {
+      return msg.reply("ZA WARUDO audio file not found!");
+    }
+    const media = MessageMedia.fromFilePath(audioPath);
+    await msg.reply(media);
+    // Disallow members to send messages (set to admins only)
+    await chat.setMessagesAdminsOnly(true);
+    await msg.reply("ZA WARUDO! Toki wo tomare!");
+  }
+
+  // Handle the !zero command
+  if (lower === "!zero") {
+    if (!chat.isGroup) {
+      return msg.reply("ZA WARUDO only works in groups!");
+    }
+    // Allow all members to send messages again
+    await chat.setMessagesAdminsOnly(false);
+    await msg.reply("Toki wa ugokidasu!");
+  }
+
+  // Handle the !kick-member command
+  if (lower === "!kick-dia") {
+    if (!chat.isGroup) {
+      return msg.reply("cuma bisa di grup");
+    }
+    try {
+      const senderId = msg.author || msg.from;
+      const botId = client.info?.wid?._serialized;
+
+      if (!senderId) {
+        return msg.reply("apalah ini");
+      }
+
+      if (botId && senderId === botId) {
+        return msg.reply("gak bisa kick bot");
+      }
+
+      const participants = chat.participants || [];
+      const sender = participants.find((p) => p.id._serialized === senderId);
+
+      if (sender?.isAdmin) {
+        return msg.reply("gabisalah kick admin");
+      }
+
+      await chat.removeParticipants([senderId]);
+      await msg.reply("rip 1 member jahat");
+    } catch (error) {
+      console.error("Kick error:", error);
+      await msg.reply("direply dulu");
+    }
+  }
+
+  // Download video command
+  if (lower.startsWith("!dl ")) {
+    const url = msg.body.slice(4).trim();
+    if (!url) {
       return msg.reply("kasih linknya. !dl [link]");
     }
+    return handleDownloadVideo(msg, url);
+  }
 
-    await chat.sendStateTyping();
-
-    const isVideoSite =
-      /youtube\.com|youtu\.be|vimeo\.com|dailymotion\.com|twitch\.tv|instagram\.com|facebook\.com|tiktok\.com/i.test(
-        link,
-      );
-    const tool = isVideoSite ? "yt-dlp" : "gallery-dl";
-    const outputTemplate = isVideoSite ? "temp.%(ext)s" : "%(title)s.%(ext)s";
-    const command = isVideoSite
-      ? `${tool} -S "res:720" -o "${outputTemplate}" "${link}"`
-      : `${tool} --range 1-1 "${link}"`; // limit to 1 for gallery-dl
-
-    console.log(`Downloading with ${tool}: ${command}`);
-
-    // Record existing files before download
-    const existingFiles = new Set(fs.readdirSync(__dirname));
-
-    exec(command, { cwd: __dirname }, async (error, stdout, stderr) => {
-      if (error) {
-        console.error(`Download error: ${error}`);
-        await msg.reply(`gagal download: ${error.message}`);
-        return;
-      }
-
-      console.log("Download stdout:", stdout);
-      if (stderr) console.log("Download stderr:", stderr);
-
-      // Find newly downloaded files (ignore known extensions)
-      const skipExtensions = [".js", ".json", ".md", ".env"];
-      const newFiles = fs
-        .readdirSync(__dirname)
-        .filter(
-          (f) =>
-            !existingFiles.has(f) &&
-            !skipExtensions.some((ext) => f.endsWith(ext)),
-        );
-
-      if (newFiles.length === 0) {
-        console.error("No new files found after download");
-        await msg.reply("file download enggak ketemu");
-        return;
-      }
-
-      const filePath = path.join(__dirname, newFiles[0]);
-      console.log(`Found downloaded file: ${filePath}`);
-
-      let sendSuccess = false;
-      try {
-        const media = MessageMedia.fromFilePath(filePath);
-        await msg.reply(media);
-        console.log("✅ Media sent successfully");
-        sendSuccess = true;
-      } catch (sendError) {
-        console.error("Send error:", sendError);
-        await msg.reply(`gagal kirim file: ${sendError.message}`);
-      } finally {
-        // Cleanup - only if send was successful
-        if (sendSuccess) {
-          try {
-            fs.unlinkSync(filePath);
-            console.log(`Cleaned up: ${filePath}`);
-          } catch (cleanupError) {
-            console.error("Cleanup error:", cleanupError);
-          }
-        } else {
-          console.warn(`File NOT deleted due to send error: ${filePath}`);
-        }
-      }
-    });
+  // Download audio command
+  if (lower.startsWith("!dl-audio ")) {
+    const url = msg.body.slice(10).trim();
+    if (!url) {
+      return msg.reply("kasih linknya. !dl-audio [link]");
+    }
+    return handleDownloadAudio(msg, url);
   }
 }
 
@@ -504,4 +585,4 @@ client.initialize();
 //   groups.forEach((g) => {
 //     console.log(`${g.name} => ${g.id._serialized}`);
 //   });
-// });
+// })
