@@ -18,7 +18,7 @@ const openrouter = new OpenRouter({
 });
 
 // Global mute mode: when true, bot ignores incoming messages (except itself)
-let isMuted = false;
+let isMuted = true;
 
 // Global gacha control: separate cooldowns for each gacha command
 let gachaSticker5CooldownUntil = null; // 5 min cooldown for !gacha-sticker
@@ -231,18 +231,18 @@ async function handleMessage(msg) {
 
   // Simple ping command
   if (lower === "!test") {
-    return msg.reply("udah aktif botnya, kenapa nich?");
+    return msg.reply("udah aktif botnya, !menu buat liat semua command");
   }
 
   // Mute bot command
-  if (lower === "!tidur") {
+  if (lower === "!mancing") {
     isMuted = true;
     return msg.reply("mau mancing dulu ya ges");
   }
 
-  if (lower === "!bangun") {
+  if (lower === "!pulang") {
     isMuted = false;
-    return msg.reply("aku bangun");
+    return msg.reply("aku kembali abis mancing");
   }
 
   if (lower === "!menu") {
@@ -252,19 +252,20 @@ async function handleMessage(msg) {
       !zero
       
       semua bowleh
+      !dl [link]
+      !dl-audio [link]
       !sticker
       !sticker-caption [text]
       !gacha-sticker
       !gacha-sticker-10
-      !dl [link]
-      !dl-audio [link]
       !kick-dia
+      !mancing
+      !menu
       !test
-      !tidur
       
       yang bot bot aja
       !ai
-      !bangun
+      !pulang
     `);
   }
 
