@@ -9,6 +9,7 @@ const path = require("path");
 const { exec } = require("child_process");
 const { handleDownloadVideo, handleDownloadAudio } = require("./downloader");
 const { handleArchiveMedia } = require("./archive");
+const { handleGroupClose, handleGroupOpen } = require("./groupClose");
 
 const OPENROUTER_MODEL = process.env.OPENROUTER_MODEL || "none";
 const OPENROUTER_TIMEOUT_MS =
@@ -19,7 +20,7 @@ const openrouter = new OpenRouter({
 });
 
 // Global mute mode: when true, bot ignores incoming messages (except itself)
-let isMuted = true;
+let isMuted = false;
 
 // Global gacha control: separate cooldowns for each gacha command
 let gachaSticker5CooldownUntil = null; // 5 min cooldown for !gacha-sticker
@@ -225,7 +226,7 @@ async function handleMessage(msg) {
   const body = (msg.body || "").trim();
   const lower = body.toLowerCase();
 
-  // Mute mode: ignore non-bot messages when !udahan active
+  // Mute mode: ignore non-bot messages when active
   if (isMuted && !msg.fromMe) {
     return;
   }
@@ -249,8 +250,8 @@ async function handleMessage(msg) {
   if (lower === "!menu") {
     return msg.reply(`
       yang admin admin aja
-      !za-warudo
-      !zero
+      !close
+      !open
       
       semua bowleh
       !arsip
@@ -268,6 +269,7 @@ async function handleMessage(msg) {
       yang bot bot aja
       !ai
       !pulang
+      !gacha-sticker-67
     `);
   }
 
@@ -321,9 +323,11 @@ async function handleMessage(msg) {
   }
 
   // Sticker command (only in personal chat or configured group, or bot's own messages in any group)
-  const TARGET_GROUP_ID = "120363426915771477@g.us";
+  const TARGET_GROUP_ID = ["120363426915771477@g.us", "120363406343353135@g.us"];
   const isPersonalChat = !chat.isGroup;
-  const isTargetGroup = chat.isGroup && chat.id._serialized === TARGET_GROUP_ID;
+  const isTargetGroup =
+    chat.isGroup &&
+    TARGET_GROUP_ID.includes(chat.id._serialized);
 
   if (!isPersonalChat && !isTargetGroup && !msg.fromMe) return;
   if (lower === "!sticker") {
@@ -480,31 +484,23 @@ async function handleMessage(msg) {
     return;
   }
 
-  // Handle the !za-warudo command
-  if (lower === "!za-warudo") {
-    if (!chat.isGroup) {
-      return msg.reply("ZA WARUDO only works in groups!");
+  // Gacha sticker 67 command (bot-only)
+  if (lower === "!gacha-sticker-67") {
+    if (!msg.fromMe) {
+      return msg.reply("cuma bowleh bot");
     }
-    // Send the audio file
-    const audioPath = path.join(__dirname, "assets", "za-warudo.mp3");
-    if (!fs.existsSync(audioPath)) {
-      return msg.reply("ZA WARUDO audio file not found!");
-    }
-    const media = MessageMedia.fromFilePath(audioPath);
-    await msg.reply(media);
-    // Disallow members to send messages (set to admins only)
-    await chat.setMessagesAdminsOnly(true);
-    await msg.reply("ZA WARUDO! Toki wo tomare!");
+    await sendGachaStickers(chat, 67);
+    return;
   }
 
-  // Handle the !zero command
-  if (lower === "!zero") {
-    if (!chat.isGroup) {
-      return msg.reply("ZA WARUDO only works in groups!");
-    }
-    // Allow all members to send messages again
-    await chat.setMessagesAdminsOnly(false);
-    await msg.reply("Toki wa ugokidasu!");
+  // Handle the !group-close command
+  if (lower === "!close") {
+    return handleGroupClose(msg, chat, client);
+  }
+
+  // Handle the !group-open command
+  if (lower === "!open") {
+    return handleGroupOpen(chat);
   }
 
   // Handle the !kick-member command
@@ -526,10 +522,6 @@ async function handleMessage(msg) {
 
       const participants = chat.participants || [];
       const sender = participants.find((p) => p.id._serialized === senderId);
-
-      if (sender?.isAdmin) {
-        return msg.reply("gabisalah kick admin");
-      }
 
       await chat.removeParticipants([senderId]);
       await msg.reply("rip 1 member jahat");

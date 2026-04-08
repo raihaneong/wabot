@@ -17,10 +17,20 @@ async function handleDownloadVideo(msg, url) {
 
     try {
       console.log(`Starting yt-dlp download for: ${url}`);
-      await execAsync(
-        `yt-dlp -S "res:720" -f mp4 --cookies-from-browser firefox:k6urnm7e.default-release-1765937955021 -o "${outputPattern}.%(ext)s" "${url}"`
-      );
-      console.log("yt-dlp command completed successfully");
+      // First try: prioritize MP4 format
+      try {
+        await execAsync(
+          `yt-dlp -S "res:720" -f "mp4/b" --cookies-from-browser firefox:k6urnm7e.default-release-1765937955021 -o "${outputPattern}.%(ext)s" "${url}"`
+        );
+        console.log("yt-dlp MP4 command completed successfully");
+      } catch (mp4Error) {
+        console.log("MP4 format failed, falling back to best available format");
+        // Fallback: download best available format
+        await execAsync(
+          `yt-dlp -S "res:720" -f "best" --cookies-from-browser firefox:k6urnm7e.default-release-1765937955021 -o "${outputPattern}.%(ext)s" "${url}"`
+        );
+        console.log("yt-dlp fallback command completed successfully");
+      }
 
       // Find the downloaded file
       const files = fs.readdirSync(tempDir);

@@ -16,7 +16,7 @@ async function handleArchiveMedia(msg) {
 
     // Check for media: either in quoted message or current message
     let targetMsg = msg;
-    if (msg.hasQuotedMsg) {
+    if (msg.react("📩")) {
       targetMsg = await msg.getQuotedMessage();
     }
 
