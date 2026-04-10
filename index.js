@@ -11,7 +11,12 @@ const { handleAI } = require("./src/ai");
 const { formatMsAsMinSecond } = require("./src/sticker");
 const { setAfk, getAfk, clearAfk } = require("./src/afkStore");
 const { registerTelemetry } = require("./src/telemetry");
-const logDate = () => new Date().toISOString();
+
+const logDate = () => {
+  const d = new Date();
+  const pad = (n) => String(n).padStart(2, "0");
+  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())} ${pad(d.getHours())}:${pad(d.getMinutes())}:${pad(d.getSeconds())} -`;
+};
 
 const config = JSON.parse(fs.readFileSync("./config.json", "utf8"));
 const listenedGroupIds = new Set(config["listensTo"] || []);
@@ -162,7 +167,7 @@ async function handleMessage(msg) {
   if (lower.startsWith(".afk")) {
     const afkMessage = body.slice(4).trim() || "entahlah";
     setAfk(senderId, afkMessage, chat.id?._serialized || null);
-    return msg.reply(`AFK dengan alasan${afkMessage}`);
+    return msg.reply(`AFK dengan alasan: ${afkMessage}`);
   }
 
   if (lower === ".sticker") {
@@ -298,6 +303,10 @@ async function handleMessage(msg) {
 }
 
 client.on("message", handleMessage);
+client.on("message_create", (msg) => {
+  if (!msg.fromMe) return;
+  return handleMessage(msg);
+});
 
 // const { registerTTSHandler } = require("./tts");
 // inside client.on("ready", ...) :

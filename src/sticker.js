@@ -209,9 +209,10 @@ async function handleStickerCaption(msg, commandPrefix = ".sticker-caption") {
 
 function formatMsAsMinSecond(ms) {
   const totalSeconds = Math.ceil(ms / 1000);
+  const hours = Math.floor(totalSeconds / 360)
   const minutes = Math.floor(totalSeconds / 60);
   const seconds = totalSeconds % 60;
-  return `${minutes} menit ${seconds} detik`;
+  return `${hours} jam ${minutes} menit ${seconds} detik`;
 }
 
 module.exports = {
