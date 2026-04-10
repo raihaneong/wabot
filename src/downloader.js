@@ -11,7 +11,7 @@ async function handleDownloadVideo(msg, url) {
   try {
     await msg.react("⏳");
 
-    const tempDir = path.join(__dirname, "..", "private");
+    const tempDir = path.join(__dirname, "..", "tmp");
     const timestamp = Date.now();
     const outputPattern = path.join(tempDir, `wabot_video_${timestamp}`);
 
@@ -39,7 +39,7 @@ async function handleDownloadVideo(msg, url) {
       );
 
       if (!downloadedFile) {
-        console.log("Available files in private/:", files);
+        console.log("Available files in tmp/:", files);
         await msg.react("❌");
         return msg.reply("file download enggak ketemu");
       }
@@ -90,7 +90,7 @@ async function handleDownloadAudio(msg, url) {
   try {
     await msg.react("⏳");
 
-    const tempDir = path.join(__dirname, "..", "private");
+    const tempDir = path.join(__dirname, "..", "tmp");
     const timestamp = Date.now();
     const outputPattern = path.join(tempDir, `wabot_audio_${timestamp}`);
 
@@ -109,7 +109,7 @@ async function handleDownloadAudio(msg, url) {
       );
 
       if (!downloadedFile) {
-        console.log("Available files in private/:", files);
+        console.log("Available files in tmp/:", files);
         await msg.react("❌");
         return msg.reply("file download enggak ketemu");
       }

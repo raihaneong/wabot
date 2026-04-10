@@ -8,7 +8,7 @@ const execAsync = promisify(exec);
 async function handleArchiveMedia(msg) {
   const remoteName = process.env.RCLONE_REMOTE || "drive-kashva:stira";
   console.log(
-    `[ARCHIVE MEDIA] Request from ${msg.from} to remote: ${remoteName}`,
+    `${logDate()} [ARCHIVE MEDIA] Request from ${msg.from} to remote: ${remoteName}`,
   );
 
   try {
@@ -25,7 +25,7 @@ async function handleArchiveMedia(msg) {
       return msg.reply("cuma bisa arsip media, bukan teks bjir");
     }
 
-    console.log("Downloading media...");
+    console.log(`${logDate()} Downloading media...`);
     const media = await targetMsg.downloadMedia();
 
     if (!media) {
@@ -59,17 +59,17 @@ async function handleArchiveMedia(msg) {
     }
 
     // Write media to temp file
-    console.log(`Writing media to temp file: ${tempFilePath}`);
+    console.log(`${logDate()} Writing media to temp file: ${tempFilePath}`);
     fs.writeFileSync(tempFilePath, Buffer.from(media.data, "base64"));
 
     // Use rclone copy to upload
-    console.log(`Starting rclone copy to ${remoteName}...`);
+    console.log(`${logDate()} Starting rclone copy to ${remoteName}...`);
     const rcloneCmd = `rclone copy "${tempFilePath}" "${remoteName}" -P`;
-    console.log(`Executing: ${rcloneCmd}`);
+    console.log(`${logDate()} Executing: ${rcloneCmd}`);
 
     await execAsync(rcloneCmd);
 
-    console.log("✅ Rclone copy completed successfully");
+    console.log(`${logDate()} ✅ Rclone copy completed successfully`);
     await msg.react("✅");
     await msg.reply(`
         media berhasil diarsip
@@ -80,13 +80,13 @@ async function handleArchiveMedia(msg) {
     try {
       if (fs.existsSync(tempFilePath)) {
         fs.unlinkSync(tempFilePath);
-        console.log("Temp file cleaned up");
+        console.log(`${logDate()} Temp file cleaned up`);
       }
     } catch (cleanupError) {
-      console.error("Error cleaning up temp file:", cleanupError);
+      console.error(`${logDate()} Error cleaning up temp file:`, cleanupError);
     }
   } catch (error) {
-    console.error("Archive error:", error);
+    console.error(`${logDate()} Archive error:`, error);
     await msg.react("❌");
     return msg.reply(
       `gagal arsip media: ${error.message || "error tidak diketahui"}`,
