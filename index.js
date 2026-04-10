@@ -9,7 +9,7 @@ const { handleGroupClose, handleGroupOpen } = require("./src/groupClose");
 const { handleStickerCaption, sendGachaStickers } = require("./src/sticker");
 const { handleAI } = require("./src/ai");
 const { formatMsAsMinSecond } = require("./src/sticker");
-const { setAfk, getAfk, clearAfk } = require("./src/afkStore");
+const { setAfk, getAfk, clearAfk, listAfkByChat } = require("./src/afkStore");
 const { registerTelemetry } = require("./src/telemetry");
 function bareId(value) {
   return String(value || "").split("@")[0];
@@ -108,24 +108,15 @@ async function handleMessage(msg) {
     }
   }
   
-  if (lower.startsWith(".afk")) {
+  if (lower === ".afk" || lower.startsWith(".afk ")) {
     const afkMessage = body.slice(4).trim() || "entahlah";
     setAfk(senderId, afkMessage, chat.id?._serialized || null);
     const senderName = await resolveSenderName(msg, senderId);
     console.log(logDate(), senderName, "AFK")
     return msg.reply(`${senderName} tercatat AFK`);
   }
-  // Notify when message mentions/replies to an AFK user.
+  // Notify when message mentions to an AFK user.
   const mentionedIds = new Set(msg.mentionedIds || []);
-  if (msg.hasQuotedMsg) {
-    try {
-      const quoted = await msg.getQuotedMessage();
-      const quotedUserId = quoted.author || quoted.from;
-      if (quotedUserId) mentionedIds.add(quotedUserId);
-    } catch (error) {
-      console.log(logDate(), "[AFK] getQuotedMessage failed:", error?.message);
-    }
-  }
   for (const mentionedId of mentionedIds) {
     const afk = getAfk(mentionedId);
     const mentionedBare = bareId(mentionedId);
@@ -136,10 +127,31 @@ async function handleMessage(msg) {
     const hit = afk || afkAltLid || afkAltCus;
     if (!hit) continue;
     const durationMs = Date.now() - hit.since_ts;
+    const senderName = await resolveSenderName(msg, senderId)
     await msg.reply(
-      `tercatat AFK dengan alasan: ${hit.message}\nsejak ${formatMsAsMinSecond(durationMs)}`,
+      `${senderName} tercatat AFK dengan alasan: ${hit.message}\nsejak ${formatMsAsMinSecond(durationMs)}`,
     );
     break;
+  }
+
+  if (lower === ".afk-list") {
+    const chatId = chat?.id?._serialized || null;
+    const afkEntries = listAfkByChat(chatId).filter((entry) => entry.user_id !== senderId);
+    if (afkEntries.length === 0) {
+      return msg.reply("lagi enggak ada yang AFK di sini");
+    }
+
+    const lines = [];
+    for (const entry of afkEntries) {
+      const durationMs = Date.now() - entry.since_ts;
+      lines.push(
+        `- @${bareId(entry.user_id)}: ${entry.message} (sejak ${formatMsAsMinSecond(durationMs)})`,
+      );
+    }
+
+    return msg.reply(`Daftar AFK:\n${lines.join("\n")}`, undefined, {
+      mentions: afkEntries.map((entry) => entry.user_id),
+    });
   }
 
   // Mute mode: ignore non-bot messages when active
@@ -179,6 +191,7 @@ async function handleMessage(msg) {
         ".sticker",
         ".sticker-caption <text>",
         ".afk <alasan>",
+        ".afk-list",
         ".gacha-sticker",
         ".gacha-sticker-10",
         ".kick-dia",

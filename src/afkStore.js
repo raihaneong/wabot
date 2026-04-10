@@ -33,6 +33,13 @@ const deleteStmt = db.prepare(`
   WHERE user_id = ?
 `);
 
+const listByChatStmt = db.prepare(`
+  SELECT user_id, message, since_ts, chat_id
+  FROM afk_status
+  WHERE chat_id = ?
+  ORDER BY since_ts ASC
+`);
+
 function normalizeId(value) {
   if (!value) return "";
   if (typeof value === "string") return value;
@@ -57,8 +64,15 @@ function clearAfk(userId) {
   deleteStmt.run(normalizedUserId);
 }
 
+function listAfkByChat(chatId) {
+  const normalizedChatId = normalizeId(chatId);
+  if (!normalizedChatId) return [];
+  return listByChatStmt.all(normalizedChatId);
+}
+
 module.exports = {
   setAfk,
   getAfk,
   clearAfk,
+  listAfkByChat,
 };
