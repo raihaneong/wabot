@@ -98,7 +98,7 @@ async function handleGroupClose(msg, chat, client) {
     return msg.reply("bot harus jadi admin dulu buat nutup grup");
   }
 
-  const audioPath = path.join(__dirname, "assets", "lullaby.mp3");
+  const audioPath = path.join(__dirname, "..", "assets", "lullaby.mp3");
   console.log("[handleGroupClose] audioPath:", audioPath);
   console.log("[handleGroupClose] file exists:", fs.existsSync(audioPath));
 

@@ -11,7 +11,7 @@ async function handleDownloadVideo(msg, url) {
   try {
     await msg.react("⏳");
 
-    const tempDir = path.join(__dirname, "private");
+    const tempDir = path.join(__dirname, "..", "private");
     const timestamp = Date.now();
     const outputPattern = path.join(tempDir, `wabot_video_${timestamp}`);
 
@@ -90,7 +90,7 @@ async function handleDownloadAudio(msg, url) {
   try {
     await msg.react("⏳");
 
-    const tempDir = path.join(__dirname, "private");
+    const tempDir = path.join(__dirname, "..", "private");
     const timestamp = Date.now();
     const outputPattern = path.join(tempDir, `wabot_audio_${timestamp}`);
 

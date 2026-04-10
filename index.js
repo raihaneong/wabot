@@ -7,9 +7,9 @@ const ffmpeg = require("fluent-ffmpeg");
 const fs = require("fs");
 const path = require("path");
 const { exec } = require("child_process");
-const { handleDownloadVideo, handleDownloadAudio } = require("./downloader");
-const { handleArchiveMedia } = require("./archive");
-const { handleGroupClose, handleGroupOpen } = require("./groupClose");
+const { handleDownloadVideo, handleDownloadAudio } = require("./src/downloader");
+const { handleArchiveMedia } = require("./src/archive");
+const { handleGroupClose, handleGroupOpen } = require("./src/groupClose");
 
 const OPENROUTER_MODEL = process.env.OPENROUTER_MODEL || "none";
 const OPENROUTER_TIMEOUT_MS =

@@ -34,7 +34,7 @@ async function handleArchiveMedia(msg) {
     }
 
     // Create temp directory if it doesn't exist
-    const tempDir = path.join(__dirname, "private");
+    const tempDir = path.join(__dirname, "..", "private");
     if (!fs.existsSync(tempDir)) {
       fs.mkdirSync(tempDir, { recursive: true });
     }
