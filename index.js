@@ -75,8 +75,11 @@ async function handleMessage(msg) {
   if (!lower.startsWith(".afk")) {
     const senderAfk = getAfk(senderId);
     if (senderAfk) {
+      const durationMs = Date.now() - senderAfk.since_ts;
       clearAfk(senderId);
-      await msg.reply("bro ini aktif lagi setelah:");
+      await msg.reply(
+        `bro ini aktif lagi setelah ${formatMsAsMinSecond(durationMs)}`,
+      );
     }
   }
 
