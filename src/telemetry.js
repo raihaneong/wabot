@@ -1,18 +1,55 @@
-// listening to all incoming messages
-// client.on("message", async (msg) => {
-//   const chat = await msg.getChat();
-//   if (chat.isGroup) {
-//     console.log("Name:", chat.name);
-//     console.log("ID:", chat.id._serialized);
-//   }
-// });
+const fs = require("fs");
+const path = require("path");
 
-// List all groups the bot is a part of and print their names and IDs
-// client.on("ready", async () => {
-//   const chats = await client.getChats();
-//   const groups = chats.filter((c) => c.isGroup);
+const TELEMETRY_PATH = path.join(__dirname, "..", "telemetry.ndjson");
 
-//   groups.forEach((g) => {
-//     console.log(`${g.name} => ${g.id._serialized}`);
-//   });
-// });
+function appendTelemetry(event) {
+  const line = `${JSON.stringify(event)}\n`;
+  fs.appendFileSync(TELEMETRY_PATH, line, "utf8");
+}
+
+function registerTelemetry(client) {
+  client.on("ready", async () => {
+    try {
+      const chats = await client.getChats();
+      const groups = chats.filter((chat) => chat.isGroup);
+      for (const group of groups) {
+        appendTelemetry({
+          ts: new Date().toISOString(),
+          kind: "group_catalog",
+          groupId: group?.id?._serialized || "",
+          groupName: group?.name || "",
+        });
+      }
+      console.log(
+        `[telemetry] cataloged ${groups.length} groups -> ${TELEMETRY_PATH}`,
+      );
+    } catch (error) {
+      console.error("[telemetry] ready handler failed:", error?.message || error);
+    }
+  });
+
+  client.on("message", async (msg) => {
+    try {
+      const chat = await msg.getChat();
+      appendTelemetry({
+        ts: new Date().toISOString(),
+        kind: "incoming_message",
+        chatId: chat?.id?._serialized || msg?.from || "",
+        chatName: chat?.name || "",
+        isGroup: Boolean(chat?.isGroup),
+        authorId: msg?.author || "",
+        fromMe: Boolean(msg?.fromMe),
+        type: msg?.type || "",
+        bodyPreview: String(msg?.body || "").slice(0, 80),
+      });
+    } catch (error) {
+      if (String(error?.message || "").includes("channelMetadata")) return;
+      console.error("[telemetry] message handler failed:", error?.message || error);
+    }
+  });
+}
+
+module.exports = {
+  registerTelemetry,
+};

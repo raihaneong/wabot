@@ -74,3 +74,6 @@ sticker-caption.js
 doc/
 doc.md
 README.md
+
+---
+run `$env:TELEMETRY_ENABLED='true'; npm start` to lookup group ID the bot is in

@@ -10,6 +10,7 @@ const { addCaptionToImage, sendGachaStickers } = require("./src/sticker");
 const { handleAI } = require("./src/ai");
 const { formatMsAsMinSecond } = require("./src/sticker");
 const { setAfk, getAfk, clearAfk } = require("./src/afkStore");
+const { registerTelemetry } = require("./src/telemetry");
 const logDate = () => new Date().toISOString();
 
 const config = JSON.parse(fs.readFileSync("./config.json", "utf8"));
@@ -284,4 +285,9 @@ client.on("message", handleMessage);
 // client.on("message_create", registerTTSHandler(client));
 
 // Start your client
+if (process.env.TELEMETRY_ENABLED === "true") {
+  registerTelemetry(client);
+  console.log(logDate(), "[telemetry] enabled");
+}
+
 client.initialize();
