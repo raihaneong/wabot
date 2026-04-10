@@ -106,30 +106,32 @@ async function handleMessage(msg) {
   }
 
   if (lower === ".menu") {
-    return msg.reply(`
-      yang admin admin aja
-      .close
-      .open
-      
-      semua bowleh
-      .arsip
-      .dl [link]
-      .dl-audio [link]
-      .sticker
-      .sticker-caption [text]
-      .gacha-sticker
-      .gacha-sticker-10
-      .kick-dia
-      .afk [alasan]
-      .mancing
-      .menu
-      .test
-      
-      yang bot bot aja
-      .ai
-      .pulang
-      .gacha-sticker-67
-    `);
+    return msg.reply(
+      [
+        "yang admin admin aja",
+        ".close",
+        ".open",
+        "",
+        "semua bowleh",
+        ".menu",
+        ".test",
+        ".arsip",
+        ".dl <link>",
+        ".dl-audio <link>",
+        ".sticker",
+        ".sticker-caption <text>",
+        ".afk <alasan>",
+        ".gacha-sticker",
+        ".gacha-sticker-10",
+        ".kick-dia",
+        ".mancing",
+        "",
+        "yang bot bot aja",
+        ".ai <prompt>",
+        ".pulang",
+        ".gacha-sticker-67",
+      ].join("\n"),
+    );
   }
 
   // AI command
