@@ -227,9 +227,9 @@ async function handleMessage(msg) {
   const lower = body.toLowerCase();
 
   // Mute mode: ignore non-bot messages when active
-  if (isMuted && !msg.fromMe) {
-    return;
-  }
+  // if (isMuted && !msg.fromMe) {
+  //   return;
+  // }
 
   // Simple ping command
   if (lower === "!test") {
@@ -323,11 +323,13 @@ async function handleMessage(msg) {
   }
 
   // Sticker command (only in personal chat or configured group, or bot's own messages in any group)
-  const TARGET_GROUP_ID = ["120363426915771477@g.us", "120363406343353135@g.us"];
+  const TARGET_GROUP_ID = [
+    "120363426915771477@g.us",
+    "120363406343353135@g.us",
+  ];
   const isPersonalChat = !chat.isGroup;
   const isTargetGroup =
-    chat.isGroup &&
-    TARGET_GROUP_ID.includes(chat.id._serialized);
+    chat.isGroup && TARGET_GROUP_ID.includes(chat.id._serialized);
 
   if (!isPersonalChat && !isTargetGroup && !msg.fromMe) return;
   if (lower === "!sticker") {
@@ -556,6 +558,19 @@ async function handleMessage(msg) {
 
 // Listen to messages you send (message_create fires on all messages)
 client.on("message_create", handleMessage);
+
+client.on("message", async (msg) => {
+  try {
+    const chat = await msg.getChat();
+    // your logic here
+  } catch (err) {
+    if (err.message.includes("channelMetadata")) {
+      // skip newsletter/channel messages
+      return;
+    }
+    throw err;
+  }
+});
 
 // const { registerTTSHandler } = require("./tts");
 // inside client.on("ready", ...) :
