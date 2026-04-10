@@ -25,6 +25,7 @@ async function sendGachaStickers(chat, limit) {
   const selectedFiles = shuffled.slice(0, numToSend);
   for (const file of selectedFiles) {
     const filePath = path.join(stickersDir, file);
+    console.log(`[GACHA STICKER] Sending file: ${file}`);
     const media = MessageMedia.fromFilePath(filePath);
     await chat.sendMessage(media, {
       sendMediaAsSticker: true,
