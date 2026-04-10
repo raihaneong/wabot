@@ -11,6 +11,24 @@ const { handleAI } = require("./src/ai");
 const { formatMsAsMinSecond } = require("./src/sticker");
 const { setAfk, getAfk, clearAfk } = require("./src/afkStore");
 const { registerTelemetry } = require("./src/telemetry");
+function bareId(value) {
+  return String(value || "").split("@")[0];
+}
+async function resolveSenderName(msg, fallbackId) {
+  const dataName = msg?._data?.notifyName || msg?._data?.pushname;
+  if (dataName) return dataName;
+  try {
+    const contact = await msg.getContact();
+    return (
+      contact?.pushname ||
+      contact?.name ||
+      contact?.number ||
+      bareId(fallbackId)
+    );
+  } catch {
+    return bareId(fallbackId);
+  }
+}
 
 const logDate = () => {
   const d = new Date();
@@ -82,12 +100,21 @@ async function handleMessage(msg) {
     if (senderAfk) {
       const durationMs = Date.now() - senderAfk.since_ts;
       clearAfk(senderId);
+      const senderName = await resolveSenderName(msg, senderId);
       await msg.reply(
-        `bro ini aktif lagi setelah ${formatMsAsMinSecond(durationMs)}`,
+        `${senderName} aktif lagi setelah ${formatMsAsMinSecond(durationMs)}`,
       );
+      console.log(logDate(), senderName, "Aktif")
     }
   }
-
+  
+  if (lower.startsWith(".afk")) {
+    const afkMessage = body.slice(4).trim() || "entahlah";
+    setAfk(senderId, afkMessage, chat.id?._serialized || null);
+    const senderName = await resolveSenderName(msg, senderId);
+    console.log(logDate(), senderName, "AFK")
+    return msg.reply(`${senderName} tercatat AFK`);
+  }
   // Notify when message mentions/replies to an AFK user.
   const mentionedIds = new Set(msg.mentionedIds || []);
   if (msg.hasQuotedMsg) {
@@ -101,10 +128,16 @@ async function handleMessage(msg) {
   }
   for (const mentionedId of mentionedIds) {
     const afk = getAfk(mentionedId);
-    if (!afk) continue;
-    const durationMs = Date.now() - afk.since_ts;
+    const mentionedBare = bareId(mentionedId);
+    const altLid = mentionedBare ? `${mentionedBare}@lid` : "";
+    const altCus = mentionedBare ? `${mentionedBare}@c.us` : "";
+    const afkAltLid = altLid ? getAfk(altLid) : null;
+    const afkAltCus = altCus ? getAfk(altCus) : null;
+    const hit = afk || afkAltLid || afkAltCus;
+    if (!hit) continue;
+    const durationMs = Date.now() - hit.since_ts;
     await msg.reply(
-      `dia lagi AFK: ${afk.message}\nsejak ${formatMsAsMinSecond(durationMs)}`,
+      `tercatat AFK dengan alasan: ${hit.message}\nsejak ${formatMsAsMinSecond(durationMs)}`,
     );
     break;
   }
@@ -162,12 +195,6 @@ async function handleMessage(msg) {
   // AI command
   if (lower.startsWith(".ai")) {
     return handleAI(msg);
-  }
-
-  if (lower.startsWith(".afk")) {
-    const afkMessage = body.slice(4).trim() || "entahlah";
-    setAfk(senderId, afkMessage, chat.id?._serialized || null);
-    return msg.reply(`AFK dengan alasan: ${afkMessage}`);
   }
 
   if (lower === ".sticker") {
