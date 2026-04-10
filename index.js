@@ -6,7 +6,7 @@ const path = require("path");
 const { handleDownloadVideo, handleDownloadAudio } = require("./src/downloader");
 const { handleArchiveMedia } = require("./src/archive");
 const { handleGroupClose, handleGroupOpen } = require("./src/groupClose");
-const { addCaptionToImage, sendGachaStickers } = require("./src/sticker");
+const { handleStickerCaption, sendGachaStickers } = require("./src/sticker");
 const { handleAI } = require("./src/ai");
 const { formatMsAsMinSecond } = require("./src/sticker");
 const { setAfk, getAfk, clearAfk } = require("./src/afkStore");
@@ -321,11 +321,7 @@ async function handleMessage(msg) {
   }
 
   if (lower.startsWith(".sticker-caption ")) {
-    const caption = msg.body.slice(16).trim();
-    if (!caption) {
-      return msg.reply("tulis captionnya. .sticker-caption hello world");
-    }
-    return addCaptionToImage(msg, caption);
+    return handleStickerCaption(msg, ".sticker-caption");
   }
 }
 
