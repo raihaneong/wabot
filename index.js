@@ -38,17 +38,34 @@ client.on("qr", (qr) => {
 
 // Handle all messages including your own
 async function handleMessage(msg) {
+  const from = String(msg?.from || "").toLowerCase();
+  const isGroupSource = from.endsWith("@g.us");
+  const isPersonalSource = from.endsWith("@c.us") || from.endsWith("@lid");
+
+  // Ignore unsupported sources early before getChat().
+  if (!isGroupSource && !isPersonalSource) return;
+
+  // Group: only process IDs listed in config.
+  if (isGroupSource && !listenedGroupIds.has(from)) return;
+
+  // Personal: allow everyone.
+  // prevents the channelMetadata error: TypeError: Cannot read properties of undefined (reading 'description')
   let chat;
   try {
     chat = await msg.getChat();
   } catch (err) {
-    if ((err?.message || "").includes("channelMetadata")) {
+    const message = String(err?.message || "");
+    const stack = String(err?.stack || "");
+    const knownChannelParseError =
+      message.includes("channelMetadata") ||
+      message.includes("description") ||
+      stack.includes("Channel.js") ||
+      stack.includes("ChatFactory.js");
+    if (knownChannelParseError) {
       return;
     }
     throw err;
   }
-  const chatId = chat?.id?._serialized || "";
-  if (!chat?.isGroup || !listenedGroupIds.has(chatId)) return;
 
   const body = (msg.body || "").trim();
   const lower = body.toLowerCase();
