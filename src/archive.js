@@ -2,6 +2,7 @@ const { exec } = require("child_process");
 const { promisify } = require("util");
 const fs = require("fs");
 const path = require("path");
+const { logDate } = require("./log");
 
 const execAsync = promisify(exec);
 
