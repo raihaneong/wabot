@@ -46,10 +46,11 @@ async function pinterestSearch(msg, query) {
             try {
                 const json = JSON.parse(script.textContent);
                 const jsonStr = JSON.stringify(json);
-                const regex = /https:\/\/i\.pinimg\.com\/\d+x\/[^"\\]*/g;
+                const regex = /https:\/\/i\.pinimg\.com\/[^\/]+\/[^"\\]*/g;
                 const matches = jsonStr.match(regex) || [];
                 matches.forEach(url => {
-                    const highRes = url.replace(/\/\d+x\//, '/736x/');
+                    // Force 736x as a reliable high-res, but try originals if it seems appropriate
+                    const highRes = url.replace(/\/(?:\d+x|originals)\//, '/736x/');
                     if (!images.includes(highRes)) images.push(highRes);
                 });
             } catch (e) {
@@ -60,7 +61,7 @@ async function pinterestSearch(msg, query) {
         // Strategy 2: Fallback — grab <img> tags directly
         if (images.length === 0) {
             document.querySelectorAll('img[src*="pinimg.com"]').forEach(img => {
-                const highRes = img.src.replace(/\/\d+x\//, '/736x/');
+                const highRes = img.src.replace(/\/(?:\d+x|originals)\//, '/736x/');
                 if (!images.includes(highRes)) images.push(highRes);
             });
         }
