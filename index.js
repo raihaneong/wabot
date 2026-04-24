@@ -13,6 +13,7 @@ const { setAfk, getAfk, clearAfk, listAfkByChat } = require("./src/afkStore");
 const { registerTelemetry } = require("./src/telemetry");
 const { imageSearch } = require("./src/imageSearch");
 const { pinterestSearch } = require("./src/pinterestSearch");
+const { gifSearch } = require("./src/gifSearch");
 
 function bareId(value) {
   return String(value || "").split("@")[0];
@@ -353,6 +354,13 @@ async function handleMessage(msg) {
       return msg.reply("kasih keywordnya. /pinterest [keyword]");
     }
     return pinterestSearch(msg, query);
+  }
+  if (lower.startsWith("/gif ")) {
+    const query = msg.body.slice(5).trim();
+    if (!query) {
+      return msg.reply("kasih keywordnya. /gif [keyword]");
+    }
+    return gifSearch(chat, msg, query);
   }
 }
 
