@@ -12,6 +12,8 @@ const { formatMsAsMinSecond } = require("./src/sticker");
 const { setAfk, getAfk, clearAfk, listAfkByChat } = require("./src/afkStore");
 const { registerTelemetry } = require("./src/telemetry");
 const { imageSearch } = require("./src/imageSearch");
+const { pinterestSearch } = require("./src/pinterestSearch");
+
 function bareId(value) {
   return String(value || "").split("@")[0];
 }
@@ -344,6 +346,13 @@ async function handleMessage(msg) {
       return msg.reply("kasih keywordnya. .img [keyword]");
     }
     return imageSearch(client, msg, lower);
+  }
+  if (lower.startsWith("/pinterest ")) {
+    const query = msg.body.slice(11).trim();
+    if (!query) {
+      return msg.reply("kasih keywordnya. /pinterest [keyword]");
+    }
+    return pinterestSearch(msg, query);
   }
 }
 
