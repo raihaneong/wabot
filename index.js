@@ -11,6 +11,7 @@ const { handleAI } = require("./src/ai");
 const { formatMsAsMinSecond } = require("./src/sticker");
 const { setAfk, getAfk, clearAfk, listAfkByChat } = require("./src/afkStore");
 const { registerTelemetry } = require("./src/telemetry");
+const { imageSearch } = require("./src/imageSearch");
 function bareId(value) {
   return String(value || "").split("@")[0];
 }
@@ -107,13 +108,13 @@ async function handleMessage(msg) {
       console.log(logDate(), senderName, "Aktif")
     }
   }
-  
+
   if (lower === ".afk" || lower.startsWith(".afk ")) {
     const afkMessage = body.slice(4).trim() || "entahlah";
     setAfk(senderId, afkMessage, chat.id?._serialized || null);
     const senderName = await resolveSenderName(msg, senderId);
     console.log(logDate(), senderName, "AFK")
-    return msg.reply(`${senderName} tercatat AFK`);
+    return msg.reply(`${senderName} tercatat AFK dengan alasan ${afkMessage}`);
   }
   // Notify when message mentions to an AFK user.
   const mentionedIds = new Set(msg.mentionedIds || []);
@@ -129,7 +130,7 @@ async function handleMessage(msg) {
     const durationMs = Date.now() - hit.since_ts;
     const senderName = await resolveSenderName(msg, senderId)
     await msg.reply(
-      `${senderName} tercatat AFK dengan alasan: ${hit.message}\nsejak ${formatMsAsMinSecond(durationMs)}`,
+      `${bareId(mentionedId)} tercatat AFK dengan alasan: ${hit.message}\nsejak ${formatMsAsMinSecond(durationMs)}`,
     );
     break;
   }
@@ -211,10 +212,10 @@ async function handleMessage(msg) {
   }
 
   if (lower === ".sticker") {
+    const senderName = await resolveSenderName(msg, senderId);
     console.log(
       logDate(),
-      "Sticker command triggered from:",
-      msg.fromMe ? "yourself" : msg.author || msg.from,
+      "Sticker command triggered from:", senderName
     );
 
     let targetMsg = msg;
@@ -335,6 +336,14 @@ async function handleMessage(msg) {
 
   if (lower.startsWith(".sticker-caption ")) {
     return handleStickerCaption(msg, ".sticker-caption");
+  }
+  if (lower.startsWith(".img ")) {
+    console.log(logDate(), "img command triggered");
+    const query = msg.body.slice(4).trim();
+    if (!query) {
+      return msg.reply("kasih keywordnya. .img [keyword]");
+    }
+    return imageSearch(client, msg, lower);
   }
 }
 
