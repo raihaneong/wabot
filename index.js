@@ -3,7 +3,10 @@ const { Client, LocalAuth, MessageMedia } = require("whatsapp-web.js");
 const qrcode = require("qrcode-terminal");
 const fs = require("fs");
 const path = require("path");
-const { handleDownloadVideo, handleDownloadAudio } = require("./src/downloader");
+const {
+  handleDownloadVideo,
+  handleDownloadAudio,
+} = require("./src/downloader");
 const { handleArchiveMedia } = require("./src/archive");
 const { handleGroupClose, handleGroupOpen } = require("./src/groupClose");
 const { handleStickerCaption, sendGachaStickers } = require("./src/sticker");
@@ -50,6 +53,10 @@ let gachaSticker10CooldownUntil = config["gachaSticker10CooldownUntil"];
 // Create a new client instance
 const client = new Client({
   authStrategy: new LocalAuth(),
+  puppeteer: {
+    args: ["--no-sandbox", "--disable-setuid-sandbox"],
+  },
+  ffmpegPath: "/usr/bin/ffmpeg",
 });
 
 // When the client is ready, run this code (only once)
@@ -108,7 +115,7 @@ async function handleMessage(msg) {
       await msg.reply(
         `${senderName} aktif lagi setelah ${formatMsAsMinSecond(durationMs)}`,
       );
-      console.log(logDate(), senderName, "Aktif")
+      console.log(logDate(), senderName, "Aktif");
     }
   }
 
@@ -116,7 +123,7 @@ async function handleMessage(msg) {
     const afkMessage = body.slice(4).trim() || "entahlah";
     setAfk(senderId, afkMessage, chat.id?._serialized || null);
     const senderName = await resolveSenderName(msg, senderId);
-    console.log(logDate(), senderName, "AFK")
+    console.log(logDate(), senderName, "AFK");
     return msg.reply(`${senderName} tercatat AFK dengan alasan ${afkMessage}`);
   }
   // Notify when message mentions to an AFK user.
@@ -131,7 +138,7 @@ async function handleMessage(msg) {
     const hit = afk || afkAltLid || afkAltCus;
     if (!hit) continue;
     const durationMs = Date.now() - hit.since_ts;
-    const senderName = await resolveSenderName(msg, senderId)
+    const senderName = await resolveSenderName(msg, senderId);
     await msg.reply(
       `${bareId(mentionedId)} tercatat AFK dengan alasan: ${hit.message}\nsejak ${formatMsAsMinSecond(durationMs)}`,
     );
@@ -140,7 +147,9 @@ async function handleMessage(msg) {
 
   if (lower === ".afk-list") {
     const chatId = chat?.id?._serialized || null;
-    const afkEntries = listAfkByChat(chatId).filter((entry) => entry.user_id !== senderId);
+    const afkEntries = listAfkByChat(chatId).filter(
+      (entry) => entry.user_id !== senderId,
+    );
     if (afkEntries.length === 0) {
       return msg.reply("lagi enggak ada yang AFK di sini");
     }
@@ -216,10 +225,7 @@ async function handleMessage(msg) {
 
   if (lower === ".sticker") {
     const senderName = await resolveSenderName(msg, senderId);
-    console.log(
-      logDate(),
-      "Sticker command triggered from:", senderName
-    );
+    console.log(logDate(), "Sticker command triggered from:", senderName);
 
     let targetMsg = msg;
     if (msg.hasQuotedMsg) {
