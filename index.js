@@ -56,7 +56,6 @@ const client = new Client({
   puppeteer: {
     args: ["--no-sandbox", "--disable-setuid-sandbox"],
   },
-  ffmpegPath: "/usr/bin/ffmpeg",
 });
 
 // When the client is ready, run this code (only once)
@@ -223,7 +222,7 @@ async function handleMessage(msg) {
     return handleAI(msg);
   }
 
-  if (lower === ".sticker") {
+  if (lower === ".sticker" || lower === ".s") {
     const senderName = await resolveSenderName(msg, senderId);
     console.log(logDate(), "Sticker command triggered from:", senderName);
 
