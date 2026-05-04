@@ -26,7 +26,6 @@ const logDate = () => {
   const pad = (n) => String(n).padStart(2, "0");
   return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())} ${pad(d.getHours())}:${pad(d.getMinutes())}:${pad(d.getSeconds())} -`;
 };
-const { Client } = require("whatsapp-web.js");
 
 const client = new Client({
   authStrategy: new LocalAuth(),
