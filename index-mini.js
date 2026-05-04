@@ -20,7 +20,9 @@ client.on("qr", (qr) => {
 });
 
 async function handleMessage(msg) {
+  const lower = msg.body.toLowerCase();
   if (lower === ".sticker" || lower === ".s") {
+    msg.react("⏳");
     let targetMsg = msg;
     if (msg.hasQuotedMsg) {
       targetMsg = await msg.getQuotedMessage();
@@ -30,11 +32,20 @@ async function handleMessage(msg) {
       return msg.reply("reply video/gambarnya dulu, terus ketik .sticker");
     }
     const media = await targetMsg.downloadMedia();
+    msg.react("✅");
     await msg.reply(media, null, {
       sendMediaAsSticker: true,
       stickerName: "sticker random",
       stickerAuthor: "Departemen Stira",
     });
+  }
+
+  if (lower.startsWith(".menu")) {
+    return msg.reply(`.menu, .test, .s`);
+  }
+
+  if (lower.startsWith(".test")) {
+    return msg.react("😼");
   }
 }
 
