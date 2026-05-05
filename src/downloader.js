@@ -17,20 +17,11 @@ async function handleDownloadVideo(msg, url) {
 
     try {
       console.log(`Starting yt-dlp download for: ${url}`);
-      // First try: prioritize MP4 format
-      try {
-        await execAsync(
-          `yt-dlp -S "res:720" --cookies-from-browser firefox:k6urnm7e.default-release-1765937955021 -o "${outputPattern}.%(ext)s" "${url}"`
-        );
-        console.log("yt-dlp MP4 command completed successfully");
-      } catch (mp4Error) {
-        console.log("MP4 format failed, falling back to best available format");
-        // Fallback: download best available format
-        await execAsync(
-          `yt-dlp -S "res:720" --cookies-from-browser firefox:k6urnm7e.default-release-1765937955021 -o "${outputPattern}.%(ext)s" "${url}"`
-        );
-        console.log("yt-dlp fallback command completed successfully");
-      }
+      // Force MP4 format with 720p resolution for WhatsApp compatibility
+      await execAsync(
+        `yt-dlp -f "best[ext=mp4]" -S "res:720" --cookies-from-browser firefox:k6urnm7e.default-release-1765937955021 -o "${outputPattern}.%(ext)s" "${url}"`,
+      );
+      console.log("yt-dlp MP4 command completed successfully");
 
       // Find the downloaded file
       const files = fs.readdirSync(tempDir);
@@ -52,13 +43,41 @@ async function handleDownloadVideo(msg, url) {
         `Downloaded file: ${downloadedFile}, Size: ${fileSizeInMB.toFixed(2)} MB`,
       );
 
+      if (fileSizeInMB > 100) {
+        if (fs.existsSync(filePath)) {
+          fs.unlinkSync(filePath);
+        }
+        await msg.react("⚠️");
+        return msg.reply("file terlalu besar (>100MB), gak bisa dikirim");
+      }
+
       try {
-        const media = MessageMedia.fromFilePath(filePath);
+        const fileBuffer = fs.readFileSync(filePath);
+        const ext = path.extname(downloadedFile).toLowerCase();
+        const mimeType =
+          ext === ".mp4"
+            ? "video/mp4"
+            : ext === ".webm"
+              ? "video/webm"
+              : "video/mp4";
+        const media = new MessageMedia(
+          mimeType,
+          fileBuffer.toString("base64"),
+          downloadedFile,
+        );
         await msg.react("✅");
         await msg.reply(media);
         console.log("Media sent successfully");
       } catch (sendError) {
         console.error("Error sending media:", sendError);
+        console.error(
+          "File details - Path:",
+          filePath,
+          "Exists:",
+          fs.existsSync(filePath),
+          "Size:",
+          fileSizeInMB,
+        );
         await msg.react("❌");
         return msg.reply("gagal kirim media, tapi file sudah didownload");
       }
@@ -133,12 +152,25 @@ async function handleDownloadAudio(msg, url) {
       }
 
       try {
-        const media = MessageMedia.fromFilePath(filePath);
+        const fileBuffer = fs.readFileSync(filePath);
+        const media = new MessageMedia(
+          "audio/mpeg",
+          fileBuffer.toString("base64"),
+          downloadedFile,
+        );
         await msg.react("✅");
         await msg.reply(media);
         console.log("Audio media sent successfully");
       } catch (sendError) {
         console.error("Error sending audio media:", sendError);
+        console.error(
+          "File details - Path:",
+          filePath,
+          "Exists:",
+          fs.existsSync(filePath),
+          "Size:",
+          fileSizeInMB,
+        );
         await msg.react("❌");
         return msg.reply("gagal kirim audio, tapi file sudah didownload");
       }
