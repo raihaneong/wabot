@@ -28,7 +28,7 @@ async function handleAI(msg) {
 
   // AI command (bot-only trigger)
   if (lower.startsWith(".ai") || lower.startsWith("!ai")) {
-    if (!msg.fromMe) return;
+    // if (!msg.fromMe) return;
 
     console.log(Date.now(), "AI handler triggered");
 
