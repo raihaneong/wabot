@@ -138,9 +138,6 @@ async function handleMessage(msg) {
     if (!hit) continue;
     const durationMs = Date.now() - hit.since_ts;
     const senderName = await resolveSenderName(msg, senderId);
-    await msg.reply(
-      `${bareId(mentionedId)} tercatat AFK dengan alasan: ${hit.message}\nsejak ${formatMsAsMinSecond(durationMs)}`,
-    );
     break;
   }
 
