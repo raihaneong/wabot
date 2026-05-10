@@ -386,3 +386,13 @@ if (process.env.TELEMETRY_ENABLED === "true") {
 }
 
 client.initialize();
+
+process.on("SIGTERM", async () => {
+  await client.destroy();
+  process.exit(0);
+});
+
+process.on("SIGINT", async () => {
+  await client.destroy();
+  process.exit(0);
+});
