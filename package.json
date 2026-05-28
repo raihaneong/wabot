@@ -8,7 +8,7 @@
   "main": "index.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
-    "start": "node index.js",
+    "start": "node index-mini.mjs",
     "vps": "node index-mini.js",
     "AI": "node AI.js"
   },
