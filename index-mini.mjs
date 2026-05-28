@@ -31,26 +31,14 @@ client.on("qr", (qr) => {
 });
 
 client.on("message", (msg) => {
-  if (!msg.fromMe) return;
+    
+  if (msg.body === ".test") {
+    msg.react("😼");
+  }
 });
 
 client.on("message_create", async (msg) => {
-  if (msg.body === "!ping") {
-    msg.reply("pong");
-  }
-  if (msg.body === ".s") {
-    const media = await msg.downloadMedia();
-    const stickerMedia = new MessageMedia(
-      media.mimetype,
-      media.data,
-      "sticker.webp",
-    );
-    await msg.reply(stickerMedia, null, {
-      sendMediaAsSticker: true,
-      stickerName: "Sticker punya entahlah yaa",
-      stickerAuthor: "Departemen Stira",
-    });
-  }
+
   if (msg.body === "siapa?") {
     msg.reply(msg.author || msg.from);
   }
