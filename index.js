@@ -1,5 +1,6 @@
 import wwebjs from "whatsapp-web.js";
 import qrcode from "qrcode-terminal";
+import { db } from "./src/utils/db.js";
 // import { config } from "./config.js";
 
 const { Client, LocalAuth, MessageMedia } = wwebjs;
@@ -45,6 +46,26 @@ client.on("ready", () => {
 });
 
 client.on("message_create", async (msg) => {
+  let chat = await msg.getChat();
+
+  // spew out incoming message to the terminal
+  // console.log("Received message:", msg.body);
+
+  if (!chat.id) {
+    console.log("Chat ID is undefined");
+    return;
+  }
+
+  const isListening = db
+    .prepare("SELECT id FROM listened_groups WHERE id = ?")
+    .get(chat.id._serialized);
+  console.log("Chat ID:", chat.id);
+  console.log("Is listening:", isListening);
+
+  if (!isListening) return;
+
+  console.log("Received message:", msg.body);
+
   if (msg.body === "siapa?") {
     msg.reply(msg.author || msg.from);
   }
@@ -52,12 +73,28 @@ client.on("message_create", async (msg) => {
     msg.react("😼");
   }
 
+  if (msg.body === "/flagged") {
+    if (!chat.isGroup) return;
+
+    db.prepare(
+      "INSERT OR IGNORE INTO listened_groups (id, name) VALUES (?, ?)",
+    ).run(chat.id._serialized, chat.name);
+
+    msg.react("📍");
+  }
+
+  if (msg.body === "/unflagged") {
+    if (!chat.isGroup) return;
+    db.prepare("DELETE FROM listened_groups WHERE id = ?").run(
+      chat.id._serialized,
+    );
+    msg.react("🤐");
+  }
+
   if (msg.body === "/get chat") {
-    let chat = await msg.getChat();
     msg.reply(JSON.stringify(chat, null, 2));
   }
   if (msg.body === "/get chat participants") {
-    let chat = await msg.getChat();
     let participants = chat.participants || [];
     let userNumber = participants
       .map((p) => `${p.id.user} - ${p.name}`)
