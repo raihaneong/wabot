@@ -1,24 +1,22 @@
 import wwebjs from "whatsapp-web.js";
 import qrcode from "qrcode-terminal";
+import { config } from "./config.js";
 
 const { Client, LocalAuth, MessageMedia } = wwebjs;
 
-const client = new wwebjs.Client({
-  authStrategy: new wwebjs.LocalAuth(),
-  puppeteer: {
-    headless: true,
-    args: [
-      "--no-sandbox",
-      "--disable-setuid-sandbox",
-      "--disable-dev-shm-usage",
-      "--disable-accelerated-2d-canvas",
-      "--no-first-run",
-      "--no-zygote",
-      "--single-process",
-      "--disable-gpu",
-    ],
-  },
-});
+const puppeteerConfig = {
+  headless: true,
+  args: [
+    "--no-sandbox",
+    "--disable-setuid-sandbox",
+    "--disable-dev-shm-usage",
+    "--disable-accelerated-2d-canvas",
+    "--no-first-run",
+    "--no-zygote",
+    "--single-process",
+    "--disable-gpu",
+  ],
+};
 
 if (config.isProd) {
   puppeteerConfig.executablePath = "/usr/bin/chromium";
