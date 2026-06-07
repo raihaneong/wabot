@@ -46,6 +46,9 @@ const logDate = () => {
 const config = JSON.parse(fs.readFileSync("./config.json", "utf8"));
 const listenedGroupIds = new Set(config["listensTo"] || []);
 
+const BOT_ID = "215341120680157@lid";
+const BOT_BARE = bareId(BOT_ID);
+
 let isMuted = config["ismuted"];
 let gachaSticker5CooldownUntil = config["gachaSticker5CooldownUntil"];
 let gachaSticker10CooldownUntil = config["gachaSticker10CooldownUntil"];
@@ -103,6 +106,43 @@ async function handleMessage(msg) {
   const body = (msg.body || "").trim();
   const lower = body.toLowerCase();
   const senderId = msg.author || msg.from;
+
+  // Check for bot mentions and reply with away message (if any)
+  try {
+    const mentionedIdsArr = Array.isArray(msg.mentionedIds)
+      ? msg.mentionedIds
+      : [];
+
+    let isBotMentioned = mentionedIdsArr.some((id) => bareId(id) === BOT_BARE);
+
+    // Fallback: some versions provide Contact objects in msg.mentions
+    if (
+      !isBotMentioned &&
+      Array.isArray(msg.mentions) &&
+      msg.mentions.length > 0
+    ) {
+      isBotMentioned = msg.mentions.some((contact) => {
+        const contactId =
+          contact?.id?._serialized || contact?.id || contact?.number;
+        return contactId && bareId(contactId) === BOT_BARE;
+      });
+    }
+
+    if (isBotMentioned) {
+      const awayMessage = chat?.isGroup
+        ? `Nika lagi ga ada disini, nanti aku balas ya!`
+        : `Arunika lagi off, nanti aku balas ya!`;
+
+      await msg.reply(awayMessage);
+      console.log(
+        logDate(),
+        "✅ Bot mentioned - Away message sent to",
+        msg.from,
+      );
+    }
+  } catch (error) {
+    console.error("❌ Error when handling mentions:", error);
+  }
 
   // Clear sender AFK status when they send any non-.afk message.
   if (!lower.startsWith(".afk")) {
