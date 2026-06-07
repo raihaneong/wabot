@@ -18,9 +18,9 @@ const puppeteerConfig = {
   ],
 };
 
-if (config.isProd) {
-  puppeteerConfig.executablePath = "/usr/bin/chromium";
-}
+// if (config.isProd) {
+//   puppeteerConfig.executablePath = "/usr/bin/chromium";
+// }
 
 const client = new wwebjs.Client({
   authStrategy: new wwebjs.LocalAuth(),
