@@ -1,6 +1,6 @@
 import wwebjs from "whatsapp-web.js";
 import qrcode from "qrcode-terminal";
-import { config } from "./config.js";
+// import { config } from "./config.js";
 
 const { Client, LocalAuth, MessageMedia } = wwebjs;
 
