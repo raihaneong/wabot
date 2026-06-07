@@ -10,7 +10,8 @@
     "test": "echo \"Error: no test specified\" && exit 1",
     "start": "node index-mini.mjs",
     "vps": "node index-mini.js",
-    "AI": "node AI.js"
+    "AI": "node AI.js",
+    "dev": "nodemon index.js"
   },
   "dependencies": {
     "@openrouter/sdk": "^0.9.11",
