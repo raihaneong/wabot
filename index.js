@@ -50,9 +50,27 @@ client.on("ready", () => {
 });
 
 client.on("message_create", async (msg) => {
-  let chat = await msg.getChat();
   let contactInfo = await msg.getContact();
-  let user = contactInfo.name;
+  let user = await contactInfo.name;
+  let botId = await contactInfo.id._serialized;
+
+  // prevents the channelMetadata error: TypeError: Cannot read properties of undefined (reading 'description')
+  let chat;
+  try {
+    chat = await msg.getChat();
+  } catch (err) {
+    const message = String(err?.message || "");
+    const stack = String(err?.stack || "");
+    const knownChannelParseError =
+      message.includes("channelMetadata") ||
+      message.includes("description") ||
+      stack.includes("Channel.js") ||
+      stack.includes("ChatFactory.js");
+    if (knownChannelParseError) {
+      return;
+    }
+    throw err;
+  }
 
   // spew out incoming message to the terminal
   // console.log("Received message:", msg.body);
@@ -63,15 +81,33 @@ client.on("message_create", async (msg) => {
     return;
   }
 
+  if (msg.body === "/menu") {
+    msg.reply(
+      "/flagged\n/unflagged\n/identify\n/test\n/identify me all\n/identify contact me id\n/identify chat all\n/identify chat participants\n/mimicry [text]",
+    );
+  }
+
+  if (msg.body.startsWith("Cek")) {
+    let variableToCheck = msg.body.split("cek ")[1];
+    console.log(`[CEK] ${variableToCheck}:`, eval(variableToCheck));
+    msg.reply(`${variableToCheck}: ${eval(variableToCheck)}`);
+  }
+
+  if (msg.body === "/flaglist") {
+    console.log("Fetching flagged groups from the database...");
+
+    const flaggedGroups = db.prepare("SELECT *FROM listened_groups").all();
+    msg.reply(JSON.stringify(flaggedGroups, null, 2));
+  }
+
   if (msg.body === "/flagged") {
-    if (!chat.isGroup) return;
-    if (!chat.fromMe) return;
+    if (!chat.isGroup) msg.reply("This is not a group");
+    if (msg.from !== botId) msg.reply("you're unprivileged");
 
     db.prepare(
       "INSERT OR IGNORE INTO listened_groups (id, name) VALUES (?, ?)",
     ).run(chat.id._serialized, chat.name);
 
-    msg.react("📍");
     listenedGroupsLogger.info(
       `Started listening to group: ${chat.name} (${chat.id._serialized})`,
     );
@@ -79,22 +115,65 @@ client.on("message_create", async (msg) => {
   }
 
   if (msg.body === "/unflagged") {
-    if (!chat.isGroup) return;
-    if (!chat.fromMe) return;
+    if (!chat.isGroup) msg.reply("This is not a group");
+    if (msg.from !== botId) msg.reply("you're unprivileged");
 
     db.prepare("DELETE FROM listened_groups WHERE id = ?").run(
       chat.id._serialized,
     );
-    msg.react("🤐");
     listenedGroupsLogger.info(
       `Stopped listening to group: ${chat.name} (${chat.id._serialized})`,
     );
     return;
   }
 
-  if (msg.body === "/get contact") {
-    let contact = await msg.getContact();
-    msg.reply(JSON.stringify(contact, null, 2));
+  if (msg.body === "/identify") {
+    msg.reply(
+      "/identify all\n/identify me\n/identify contact me id\n/identify chat all\n/identify chat participants",
+    );
+  }
+
+  if (msg.body === "/identify me all") {
+    msg.reply(JSON.stringify(contactInfo, null, 2));
+  }
+
+  if (msg.body === "/identify contact me id") {
+    msg.reply(JSON.stringify(botId, null, 2));
+  }
+
+  if (msg.body === "/identify chat all") {
+    msg.reply(JSON.stringify(chat, null, 2));
+  }
+
+  if (msg.body === "/identify chat participants") {
+    let participants = chat.participants || [];
+    let userNumber = participants
+      .map((p) => `${p.id.user} - ${p.name}`)
+      .join("\n");
+    msg.reply(userNumber);
+  }
+  if (msg.body === "siapa?") {
+    msg.reply(user);
+    listenedGroupsLogger.info(`Replied to ${chat.name} with sender info.`);
+  }
+
+  if (msg.body === "Kani") {
+    msg.reply("hadir");
+    listenedGroupsLogger.info(`Replied to message from ${chat.name}.`);
+  }
+
+  if (msg.body === ".test") {
+    msg.react("😼");
+    listenedGroupsLogger.info(`Reacted to message from ${chat.name}.`);
+  }
+
+  if (msg.body.startsWith("/mimicry ")) {
+    let mimickedMessage = msg.body.split("/mimicry ")[1];
+    chat.sendMessage(mimickedMessage);
+    listenedGroupsLogger.info(`Replied to message from ${chat.name}.`);
+  }
+
+  if (msg.body === "/mimicry on") {
   }
 
   const isListening = db
@@ -105,28 +184,8 @@ client.on("message_create", async (msg) => {
   if (!isListening) return;
 
   listenedGroupsLogger.info(`Message from ${chat.name}: ${msg.body}`);
-
-  if (msg.body === "siapa?") {
-    msg.reply(user);
-    listenedGroupsLogger.info(`Replied to ${chat.name} with sender info.`);
-  }
-  if (msg.body === ".test") {
-    msg.react("😼");
-    listenedGroupsLogger.info(`Reacted to message from ${chat.name}.`);
-  }
-
-  if (msg.body === "/get chat") {
-    msg.reply(JSON.stringify(chat, null, 2));
-  }
-  if (msg.body === "/get chat participants") {
-    let participants = chat.participants || [];
-    let userNumber = participants
-      .map((p) => `${p.id.user} - ${p.name}`)
-      .join("\n");
-    msg.reply(userNumber);
-  }
 });
 
-client.setMaxListeners(50);
+client.setMaxListeners(60);
 
 client.initialize();

@@ -11,7 +11,7 @@
     "vps": "node index-mini.js",
     "AI": "node AI.js",
     "start": "node index.js",
-    "dev": "nodemon --delay 2000 index.js"
+    "dev": "nodemon index.js"
   },
   "dependencies": {
     "@openrouter/sdk": "^0.9.11",
