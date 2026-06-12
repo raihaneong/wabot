@@ -1,10 +1,8 @@
 import wwebjs from "whatsapp-web.js";
 import qrcode from "qrcode-terminal";
-import { db } from "./src/utils/db.js";
-import {
-  listenedGroupsLogger,
-  generalGroupsLogger,
-} from "./src/utils/logger.js";
+import { identifyHandler } from "./src/identify.js";
+// import { db } from "./src/db.js";
+// import { listenedGroupsLogger, generalGroupsLogger } from "./src/logger.js";
 // import { config } from "./config.js";
 
 const { Client, LocalAuth, MessageMedia } = wwebjs;
@@ -27,8 +25,8 @@ const puppeteerConfig = {
 //   puppeteerConfig.executablePath = "/usr/bin/chromium";
 // }
 
-const client = new wwebjs.Client({
-  authStrategy: new wwebjs.LocalAuth(),
+const client = new Client({
+  authStrategy: new LocalAuth({}),
   puppeteer: puppeteerConfig,
 });
 
@@ -74,7 +72,7 @@ client.on("message_create", async (msg) => {
 
   // spew out incoming message to the terminal
   // console.log("Received message:", msg.body);
-  generalGroupsLogger.info(`${chat.name} | ${user} | ${msg.body}`);
+  // generalGroupsLogger.info(`${chat.name} | ${user} | ${msg.body}`);
 
   if (!chat.id) {
     console.log("Chat ID is undefined");
@@ -127,63 +125,78 @@ client.on("message_create", async (msg) => {
     return;
   }
 
-  if (msg.body === "/identify") {
-    msg.reply(
-      "/identify all\n/identify me\n/identify contact me id\n/identify chat all\n/identify chat participants",
-    );
-  }
-
-  if (msg.body === "/identify me all") {
-    msg.reply(JSON.stringify(contactInfo, null, 2));
-  }
-
-  if (msg.body === "/identify contact me id") {
-    msg.reply(JSON.stringify(botId, null, 2));
-  }
-
-  if (msg.body === "/identify chat all") {
-    msg.reply(JSON.stringify(chat, null, 2));
-  }
-
-  if (msg.body === "/identify chat participants") {
-    let participants = chat.participants || [];
-    let userNumber = participants
-      .map((p) => `${p.id.user} - ${p.name}`)
-      .join("\n");
-    msg.reply(userNumber);
-  }
-  if (msg.body === "siapa?") {
-    msg.reply(user);
-    listenedGroupsLogger.info(`Replied to ${chat.name} with sender info.`);
-  }
-
   if (msg.body === "Kani") {
     msg.reply("hadir");
-    listenedGroupsLogger.info(`Replied to message from ${chat.name}.`);
+    console.log(
+      `Replied to message from ${chat.name} at ${new Date().toISOString()}.`,
+    );
+    // listenedGroupsLogger.info(`Replied to message from ${chat.name}.`);
   }
 
   if (msg.body === ".test") {
     msg.react("😼");
-    listenedGroupsLogger.info(`Reacted to message from ${chat.name}.`);
+    // listenedGroupsLogger.info(`Reacted to message from ${chat.name}.`);
   }
 
   if (msg.body.startsWith("/mimicry ")) {
     let mimickedMessage = msg.body.split("/mimicry ")[1];
     chat.sendMessage(mimickedMessage);
-    listenedGroupsLogger.info(`Replied to message from ${chat.name}.`);
+    // listenedGroupsLogger.info(`Replied to message from ${chat.name}.`);
   }
 
   if (msg.body === "/mimicry on") {
   }
+  if (msg.body === "/copy") {
+    const repliedMsg = await msg.getQuotedMessage();
+    if (!repliedMsg) {
+      msg.reply("Please reply to a message to copy it.");
+      return;
+    }
+    if (msg.hasMedia) {
+      const media = await msg.downloadMedia();
+      const newMessage = new MessageMedia(
+        media.mimetype,
+        media.data,
+        media.filename,
+      );
+      chat.sendMessage(newMessage, { caption: "Here's the copied media!" });
+    } else {
+      chat.sendMessage("No media found in the original message.");
+    }
+  }
 
-  const isListening = db
-    .prepare("SELECT id FROM listened_groups WHERE id = ?")
-    .get(chat.id._serialized);
+  identifyHandler(msg);
+
+  if (msg.body === "/copy-sticker") {
+    const repliedMsg = await msg.getQuotedMessage();
+    if (!repliedMsg) {
+      msg.reply("Please reply to a sticker message to copy it.");
+      return;
+    }
+    if (!repliedMsg.hasMedia || !repliedMsg.mimetype("image/webp")) {
+      msg.reply("Please reply to a sticker message to copy it.");
+      return;
+    }
+    const media = await repliedMsg.downloadMedia();
+    const newMessage = new MessageMedia(
+      media.mimetype,
+      media.data,
+      media.filename,
+    );
+    chat.sendMessage(newMessage, { caption: "Here's the copied sticker!" });
+  }
+
+  if (msg.body === "/dev") {
+  }
+
+  // const isListening = db
+  //   .prepare("SELECT id FROM listened_groups WHERE id = ?")
+  //   .get(chat.id._serialized);
 
   // sacred line to prevent the bot from responding to messages in groups that are not flagged as listened
-  if (!isListening) return;
+  // if (!isListening) return;
 
-  listenedGroupsLogger.info(`Message from ${chat.name}: ${msg.body}`);
+  // listenedGroupsLogger.info(`Message from ${chat.name}: ${msg.body}`);
 });
 
 client.setMaxListeners(60);
