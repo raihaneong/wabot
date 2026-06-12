@@ -1,5 +1,6 @@
 {
   "name": "wabot",
+  "workspaces": ["bots/*"],
   "version": "0.2.0",
   "description": "",
   "license": "ISC",
@@ -11,7 +12,8 @@
     "vps": "node index-mini.js",
     "AI": "node AI.js",
     "start": "node index.js",
-    "dev": "nodemon index.js"
+    "dev": "nodemon index.js",
+    "dev:old": "nodemon --delay 8 index-old.js"
   },
   "dependencies": {
     "@openrouter/sdk": "^0.9.11",
