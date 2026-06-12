@@ -1,22 +1,16 @@
-require("dotenv").config();
-const { Client, LocalAuth, MessageMedia } = require("whatsapp-web.js");
-const qrcode = require("qrcode-terminal");
-const fs = require("fs");
-const path = require("path");
-const {
-  handleDownloadVideo,
-  handleDownloadAudio,
-} = require("./src/downloader");
-const { handleArchiveMedia } = require("./src/archive");
-const { handleGroupClose, handleGroupOpen } = require("./src/groupClose");
-const { handleStickerCaption, sendGachaStickers } = require("./src/sticker");
-const { handleAI } = require("./src/ai");
-const { formatMsAsMinSecond } = require("./src/sticker");
-const { setAfk, getAfk, clearAfk, listAfkByChat } = require("./src/afkStore");
-const { registerTelemetry } = require("./src/telemetry");
-const { imageSearch } = require("./src/imageSearch");
-const { pinterestSearch } = require("./src/pinterestSearch");
-const { gifSearch } = require("./src/gifSearch");
+import "dotenv/config";
+import wwebjs from "whatsapp-web.js";
+import qrcode from "qrcode-terminal";
+import fs from "fs";
+import path from "path";
+import { handleDownloadVideo, handleDownloadAudio } from "./src/downloader.js";
+import { handleArchiveMedia } from "./src/archive.js";
+import { handleGroupClose, handleGroupOpen } from "./src/groupClose.js";
+import { handleStickerCaption, sendGachaStickers } from "./src/sticker.js";
+import { handleAI } from "./src/ai.js";
+import { formatMsAsMinSecond } from "./src/sticker.js";
+import { setAfk, getAfk, clearAfk, listAfkByChat } from "./src/afkStore.js";
+import { registerTelemetry } from "./src/telemetry.js";
 
 function bareId(value) {
   return String(value || "").split("@")[0];
@@ -43,7 +37,7 @@ const logDate = () => {
   return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())} ${pad(d.getHours())}:${pad(d.getMinutes())}:${pad(d.getSeconds())} -`;
 };
 
-const config = JSON.parse(fs.readFileSync("./config.json", "utf8"));
+const config = JSON.parse(fs.readFileSync("./config/config.json", "utf8"));
 const listenedGroupIds = new Set(config["listensTo"] || []);
 
 const BOT_ID = "215341120680157@lid";
@@ -54,8 +48,8 @@ let gachaSticker5CooldownUntil = config["gachaSticker5CooldownUntil"];
 let gachaSticker10CooldownUntil = config["gachaSticker10CooldownUntil"];
 
 // Create a new client instance
-const client = new Client({
-  authStrategy: new LocalAuth(),
+const client = new wwebjs.Client({
+  authStrategy: new wwebjs.LocalAuth(),
   puppeteer: {
     args: ["--no-sandbox", "--disable-setuid-sandbox"],
   },
@@ -382,27 +376,9 @@ async function handleMessage(msg) {
   if (lower.startsWith(".sticker-caption ")) {
     return handleStickerCaption(msg, ".sticker-caption");
   }
-  if (lower.startsWith(".img ")) {
-    console.log(logDate(), "img command triggered");
-    const query = msg.body.slice(4).trim();
-    if (!query) {
-      return msg.reply("kasih keywordnya. .img [keyword]");
-    }
-    return imageSearch(client, msg, lower);
-  }
-  if (lower.startsWith("/pinterest ")) {
-    const query = msg.body.slice(11).trim();
-    if (!query) {
-      return msg.reply("kasih keywordnya. /pinterest [keyword]");
-    }
-    return pinterestSearch(msg, query);
-  }
-  if (lower.startsWith("/gif ")) {
-    const query = msg.body.slice(5).trim();
-    if (!query) {
-      return msg.reply("kasih keywordnya. /gif [keyword]");
-    }
-    return gifSearch(chat, msg, query);
+  if (lower.startsWith("/dev")) {
+    const profilePic = await chat.getProfilePicUrl();
+    msg.reply(profilePic);
   }
 }
 
