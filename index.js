@@ -1,33 +1,28 @@
 import wwebjs from "whatsapp-web.js";
 import qrcode from "qrcode-terminal";
-import { identifyHandler } from "./src/identify.js";
 // import { db } from "./src/db.js";
 // import { listenedGroupsLogger, generalGroupsLogger } from "./src/logger.js";
 // import { config } from "./config.js";
 
 const { Client, LocalAuth, MessageMedia } = wwebjs;
 
-const puppeteerConfig = {
-  headless: true,
-  args: [
-    "--no-sandbox",
-    "--disable-setuid-sandbox",
-    "--disable-dev-shm-usage",
-    "--disable-accelerated-2d-canvas",
-    "--no-first-run",
-    "--no-zygote",
-    // "--single-process",
-    "--disable-gpu",
-  ],
-};
-
-// if (config.isProd) {
-//   puppeteerConfig.executablePath = "/usr/bin/chromium";
-// }
-
 const client = new Client({
   authStrategy: new LocalAuth({}),
-  puppeteer: puppeteerConfig,
+  puppeteer: {
+    // headless: true,
+    args: [
+      "--no-sandbox",
+      "--disable-setuid-sandbox",
+      "--disable-dev-shm-usage",
+      "--disable-accelerated-2d-canvas",
+      "--no-first-run",
+      "--no-zygote",
+      "--single-process",
+      "--disable-gpu",
+    ],
+    executablePath:
+      "C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe",
+  },
 });
 
 client.on("qr", (qr) => {
@@ -46,6 +41,8 @@ client.on("auth_failure", (msg) => {
 client.on("ready", () => {
   console.log("WhatsApp client is ready!");
 });
+
+// the magic
 
 client.on("message_create", async (msg) => {
   let contactInfo = await msg.getContact();
@@ -83,12 +80,6 @@ client.on("message_create", async (msg) => {
     msg.reply(
       "/flagged\n/unflagged\n/identify\n/test\n/identify me all\n/identify contact me id\n/identify chat all\n/identify chat participants\n/mimicry [text]",
     );
-  }
-
-  if (msg.body.startsWith("Cek")) {
-    let variableToCheck = msg.body.split("cek ")[1];
-    console.log(`[CEK] ${variableToCheck}:`, eval(variableToCheck));
-    msg.reply(`${variableToCheck}: ${eval(variableToCheck)}`);
   }
 
   if (msg.body === "/flaglist") {
@@ -143,9 +134,6 @@ client.on("message_create", async (msg) => {
     chat.sendMessage(mimickedMessage);
     // listenedGroupsLogger.info(`Replied to message from ${chat.name}.`);
   }
-
-  if (msg.body === "/mimicry on") {
-  }
   if (msg.body === "/copy") {
     const repliedMsg = await msg.getQuotedMessage();
     if (!repliedMsg) {
@@ -165,8 +153,107 @@ client.on("message_create", async (msg) => {
     }
   }
 
-  identifyHandler(msg);
+  //
+  //
+  // identify
+  //
+  //
 
+  if (msg.body === "/identify") {
+    msg.reply(
+      "/identify all\n/identify me\n/identify contact me id\n/identify chat all\n/identify chat participants\n/identify quoted\n/identify quoted all\n/identify quoted mimetype\n/identify quoted quoted\n/identify quoted quoted id",
+    );
+  }
+
+  if (msg.body === "/identify me all") {
+    msg.reply(JSON.stringify(contactInfo, null, 2));
+  }
+
+  if (msg.body === "/identify contact me id") {
+    msg.reply(JSON.stringify(botId, null, 2));
+  }
+
+  if (msg.body === "/identify chat all") {
+    msg.reply(JSON.stringify(chat, null, 2));
+  }
+
+  if (msg.body === "/identify chat participants") {
+    let participants = chat.participants || [];
+    let userNumber = participants
+      .map((p) => `${p.id.user} - ${p.name}`)
+      .join("\n");
+    msg.reply(userNumber);
+  }
+  if (msg.body === "siapa?") {
+    msg.reply(user);
+    // listenedGroupsLogger.info(`Replied to ${chat.name} with sender info.`);
+  }
+
+  if (msg.body === "/identify quoted") {
+    msg.reply("/identify quoted all\n/identify quoted mimetype");
+  }
+
+  if (msg.body === "/identify quoted all") {
+    const quoted = await msg.getQuotedMessage();
+    msg.reply(`${JSON.stringify(quoted, null, 2)}`);
+  }
+
+  if (msg.body === "/identify quoted mimetype") {
+    const quoted = await msg.getQuotedMessage();
+    try {
+      msg.reply(`${quoted?.mimetype}`);
+    } catch (err) {
+      console.error("Error accessing mimetype of the quoted message:", err);
+      msg.reply(err);
+    }
+  }
+
+  if (msg.body === "/identify quoted quoted") {
+    const quoted = await msg.getQuotedMessage();
+    const quotedMsg = await quoted?._data;
+    msg.reply(`${JSON.stringify(quotedMsg, null, 2)}`);
+  }
+
+  if (msg.body === "/identify quoted quoted id") {
+    const quoted = await msg.getQuotedMessage();
+    const quotedMsg = await quoted?._data;
+    const quotedMsgid = await quotedMsg?.id;
+    msg.reply(`${JSON.stringify(quotedMsgid, null, 2)}`);
+  }
+
+  //
+  //
+  // Test dev
+  //
+  //
+
+  if (msg.body == "asdf") {
+    await chat.sendMessage("listening...");
+  }
+
+  if (msg.body == "qwer") {
+    const media = await MessageMedia.fromFilePath(
+      "D:\\agl\\kani\\assets\\lullaby.mp3",
+    );
+    await client.sendMessage(msg.from, media);
+  }
+  if (msg.body == "qwer2") {
+    const media = await MessageMedia.fromFilePath(
+      "D:\\agl\\kani\\assets\\p76zdwx1u68h1.webp",
+    );
+    await client.sendMessage(msg.from, media, { caption: "ini caption" });
+  }
+  if (msg.body == "qwer3") {
+    const media = await MessageMedia.fromFilePath(
+      "D:\\agl\\kani\\assets\\cos_oguri.mp4",
+    );
+    await client.sendMessage(msg.from, media, { caption: "ini caption" });
+  }
+
+  if (msg.body == "pin") {
+  }
+
+  //
   if (msg.body === "/copy-sticker") {
     const repliedMsg = await msg.getQuotedMessage();
     if (!repliedMsg) {
@@ -184,9 +271,6 @@ client.on("message_create", async (msg) => {
       media.filename,
     );
     chat.sendMessage(newMessage, { caption: "Here's the copied sticker!" });
-  }
-
-  if (msg.body === "/dev") {
   }
 
   // const isListening = db
