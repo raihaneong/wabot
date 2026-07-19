@@ -11,6 +11,7 @@
     "vps": "node index-mini.js",
     "AI": "node AI.js",
     "start": "node index.js",
+    "start:old": "node index-old.js",
     "dev": "nodemon --delay 3 index.js",
     "dev:old": "nodemon --delay 8 index-old.js"
   },
