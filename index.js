@@ -43,18 +43,18 @@ let isReady = false;
 client.on("ready", () => {
   isReady = true;
   console.log("WhatsApp client is ready!");
-  if (!isReady) return;
 });
 
 // the magic
 
 client.on("message_create", async (msg) => {
   if (!isReady) return;
+  const chat = msg.getChat();
   try {
     // prevents the channelMetadata error: TypeError: Cannot read properties of undefined (reading 'description')
-    let chat;
+    // let chat;
     try {
-      chat = await msg.getChat();
+      // chat = await msg.getChat();
     } catch (err) {
       // const message = String(err?.message || "");
       // const stack = String(err?.stack || "");
@@ -80,47 +80,63 @@ client.on("message_create", async (msg) => {
     //
 
     if (msg.body == "asdf") {
-      await chat.sendMessage("listening...");
+      await client.sendMessage(msg.from, "listening...");
+      return;
     }
 
-    if (msg.body == "qwer") {
-      msg.react("👀");
-      const media = await MessageMedia.fromFilePath(
-        "D:\\agl\\kani\\assets\\lullaby.mp3",
-      );
-      await client.sendMessage(msg.from, media);
+    if (msg.body === "qwer") {
+      try {
+        await msg.react("👀");
+        const media = await MessageMedia.fromFilePath("./assets/lullaby.mp3");
+        await client.sendMessage(msg.from, media);
+      } catch (error) {
+        console.error("Failed to send lullaby media:", error);
+        await client.sendMessage(msg.from, "Gagal mengirim media.");
+      }
+      return;
     }
-    if (msg.body == "qwer2") {
-      msg.react("👀");
-      const media = await MessageMedia.fromFilePath(
-        "D:\\agl\\kani\\assets\\p76zdwx1u68h1.webp",
-      );
-      await client.sendMessage(msg.from, media, { caption: "ini caption" });
+
+    if (msg.body === "qwer2") {
+      try {
+        await msg.react("👀");
+        const media = await MessageMedia.fromFilePath(
+          "./assets/p76zdwx1u68h1.webp",
+        );
+        await client.sendMessage(msg.from, media, { caption: "ini caption" });
+      } catch (error) {
+        console.error("Failed to send qwer2 media:", error);
+        await client.sendMessage(msg.from, "Gagal mengirim media.");
+      }
+      return;
     }
-    if (msg.body == "qwer3") {
-      msg.react("👀");
-      const media = await MessageMedia.fromFilePath(
-        "D:\\agl\\kani\\assets\\cos_oguri.mp4",
-      );
-      await client.sendMessage(msg.from, media, { caption: "ini caption" });
+
+    if (msg.body === "qwer3") {
+      try {
+        await msg.react("👀");
+        const media = await MessageMedia.fromFilePath("./assets/cos_oguri.mp4");
+        await client.sendMessage(msg.from, media, { caption: "ini caption" });
+      } catch (error) {
+        console.error("Failed to send qwer3 media:", error);
+        await client.sendMessage(msg.from, "Gagal mengirim media.");
+      }
+      return;
     }
+
 
     if (msg.hasMedia) {
       if (msg.fromMe) return;
-      const media2sticker = await msg.downloadMedia();
       try {
-        await msg.reply(media2sticker, null, {
+        const media2sticker = await msg.downloadMedia();
+        await client.sendMessage(msg.from, media2sticker, {
           sendMediaAsSticker: true,
-          stickerName: "Sticker random",
-          stickerAuthor: "Departemen Stira",
         });
       } catch (err) {
         console.error("Caption sticker error:", err);
-        await msg.reply("gagal bikin stiker dengan caption, jadi yaudahlah");
+        await client.sendMessage(msg.from, "gagal bikin stiker dengan caption, jadi yaudahlah");
       }
     }
   } catch (error) {
-    console.error(error);
+    console.error("Message handler error:", error);
   }
 });
 
