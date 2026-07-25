@@ -13,7 +13,8 @@
     "start": "node index.js",
     "start:old": "node index-old.js",
     "dev": "nodemon --delay 3 index.js",
-    "dev:old": "nodemon --delay 8 index-old.js"
+    "dev:old": "nodemon --delay 8 index-old.js",
+    "dev:fihir": "nodemon --delay 3 index-fihir.js"
   },
   "dependencies": {
     "@openrouter/sdk": "^0.9.11",
