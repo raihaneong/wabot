@@ -3,11 +3,12 @@ import sharp from "sharp";
 import ffmpeg from "fluent-ffmpeg";
 import fs from "fs";
 import path from "path";
+import config  from "../config/config.json" with { type: "json" };
 
-async function sendGachaStickers(chat, limit) {
+async function sendGachaStickers(client, chatId, limit) {
   const stickersDir = config.stickerFolder;
   if (!fs.existsSync(stickersDir)) {
-    await chat.sendMessage("folder stickers enggak ada");
+    await client.sendMessage(chatId, "folder stickers enggak ada");
     return;
   }
 
@@ -16,7 +17,7 @@ async function sendGachaStickers(chat, limit) {
     return [".webp", ".png", ".jpg", ".jpeg", ".gif"].includes(ext);
   });
   if (files.length === 0) {
-    await chat.sendMessage("folder stickers kosong");
+    await client.sendMessage(chatId, "folder stickers kosong");
     return;
   }
 
@@ -27,7 +28,7 @@ async function sendGachaStickers(chat, limit) {
     const filePath = path.join(stickersDir, file);
     console.log(`[GACHA STICKER] Sending file: ${file}`);
     const media = wwebjs.MessageMedia.fromFilePath(filePath);
-    await chat.sendMessage(media, {
+    await client.sendMessage(chatId, media, {
       sendMediaAsSticker: true,
       stickerName: "Gacha Sticker",
       stickerAuthor: "Departemen Stira",

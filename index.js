@@ -1,5 +1,6 @@
 import wwebjs from "whatsapp-web.js";
 import qrcode from "qrcode-terminal";
+import { sendGachaStickers, formatMsAsMinSecond } from "./src/sticker.js";
 // import { db } from "./src/db.js";
 // import { listenedGroupsLogger, generalGroupsLogger } from "./src/logger.js";
 // import { config } from "./config.js";
@@ -39,7 +40,8 @@ client.on("auth_failure", (msg) => {
 });
 
 let isReady = false;
-let autoStickerEnabled = false;
+let autoStickerEnabled = true;
+let gachaSticker10CooldownUntil = 0;
 
 client.on("ready", () => {
   isReady = true;
@@ -136,12 +138,7 @@ client.on("message_create", async (msg) => {
 
       // Gacha sticker command with 5 min cooldown
   if (lower === ".gacha-sticker") {
-    if (gachaSticker5CooldownUntil && Date.now() < gachaSticker5CooldownUntil) {
-      const remainingMs = gachaSticker5CooldownUntil - Date.now();
-      return msg.reply(`Gacha cooldown: ${formatMsAsMinSecond(remainingMs)}`);
-    }
-    gachaSticker5CooldownUntil = Date.now() + 2 * 60 * 1000; // 2 minutes
-    await sendGachaStickers(chat, 4);
+    await sendGachaStickers(client, msg.from, 4);
     return;
   }
 
@@ -155,7 +152,7 @@ client.on("message_create", async (msg) => {
       return msg.reply(`Gacha cooldown: ${formatMsAsMinSecond(remainingMs)}`);
     }
     gachaSticker10CooldownUntil = Date.now() + 5 * 60 * 1000; // 5 minutes
-    await sendGachaStickers(chat, 10);
+    await sendGachaStickers(client, msg.from, 10);
     return;
   }
 
@@ -164,10 +161,9 @@ client.on("message_create", async (msg) => {
     if (!msg.fromMe) {
       return msg.reply("cuma bowleh bot");
     }
-    await sendGachaStickers(chat, 67);
+    await sendGachaStickers(client, msg.from, 67);
     return;
   }
-
 
     if (autoStickerEnabled && msg.hasMedia) {
       if (msg.fromMe) return;
@@ -178,7 +174,7 @@ client.on("message_create", async (msg) => {
         });
       } catch (err) {
         console.error("Caption sticker error:", err);
-        await client.sendMessage(msg.from, "gagal bikin stiker dengan caption, jadi yaudahlah");
+        await client.sendMessage(msg.from, err.message);
       }
     }
   } catch (error) {
