@@ -39,6 +39,7 @@ client.on("auth_failure", (msg) => {
 });
 
 let isReady = false;
+let autoStickerEnabled = false;
 
 client.on("ready", () => {
   isReady = true;
@@ -49,25 +50,8 @@ client.on("ready", () => {
 
 client.on("message_create", async (msg) => {
   if (!isReady) return;
-  const chat = msg.getChat();
   try {
-    // prevents the channelMetadata error: TypeError: Cannot read properties of undefined (reading 'description')
-    // let chat;
-    try {
-      // chat = await msg.getChat();
-    } catch (err) {
-      // const message = String(err?.message || "");
-      // const stack = String(err?.stack || "");
-      // const knownChannelParseError =
-      //   message.includes("channelMetadata") ||
-      //   message.includes("description") ||
-      //   stack.includes("Channel.js") ||
-      //   stack.includes("ChatFactory.js");
-      // if (knownChannelParseError) {
-      //   return;
-      // }
-      throw err;
-    }
+
 
     // spew out incoming message to the terminal
     // console.log("Received message:", msg.body);
@@ -78,6 +62,34 @@ client.on("message_create", async (msg) => {
     // Test dev
     //
     //
+
+    const lower = (msg.body || "").trim().toLowerCase();
+
+    if (msg.body === "menu") {
+      await client.sendMessage(msg.from,
+        `asdf
+        qwer
+        qwer2
+        qwer3
+        gacha-sticker
+        sticker on
+        sticker off
+        `
+      );
+      return;
+    }
+
+    if (lower === "sticker on") {
+      autoStickerEnabled = true;
+      await client.sendMessage(msg.from, "Auto sticker enabled.");
+      return;
+    }
+
+    if (lower === "sticker off") {
+      autoStickerEnabled = false;
+      await client.sendMessage(msg.from, "Auto sticker disabled.");
+      return;
+    }
 
     if (msg.body == "asdf") {
       await client.sendMessage(msg.from, "listening...");
@@ -122,8 +134,42 @@ client.on("message_create", async (msg) => {
       return;
     }
 
+      // Gacha sticker command with 5 min cooldown
+  if (lower === ".gacha-sticker") {
+    if (gachaSticker5CooldownUntil && Date.now() < gachaSticker5CooldownUntil) {
+      const remainingMs = gachaSticker5CooldownUntil - Date.now();
+      return msg.reply(`Gacha cooldown: ${formatMsAsMinSecond(remainingMs)}`);
+    }
+    gachaSticker5CooldownUntil = Date.now() + 2 * 60 * 1000; // 2 minutes
+    await sendGachaStickers(chat, 4);
+    return;
+  }
 
-    if (msg.hasMedia) {
+  // Gacha sticker 10 command with 10 min cooldown
+  if (lower === ".gacha-sticker-10") {
+    if (
+      gachaSticker10CooldownUntil &&
+      Date.now() < gachaSticker10CooldownUntil
+    ) {
+      const remainingMs = gachaSticker10CooldownUntil - Date.now();
+      return msg.reply(`Gacha cooldown: ${formatMsAsMinSecond(remainingMs)}`);
+    }
+    gachaSticker10CooldownUntil = Date.now() + 5 * 60 * 1000; // 5 minutes
+    await sendGachaStickers(chat, 10);
+    return;
+  }
+
+  // Gacha sticker 67 command (bot-only)
+  if (lower === ".gacha-sticker-67") {
+    if (!msg.fromMe) {
+      return msg.reply("cuma bowleh bot");
+    }
+    await sendGachaStickers(chat, 67);
+    return;
+  }
+
+
+    if (autoStickerEnabled && msg.hasMedia) {
       if (msg.fromMe) return;
       try {
         const media2sticker = await msg.downloadMedia();
