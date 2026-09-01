@@ -1,3 +1,6 @@
+260401 - error on group close and open commands
+
+
 260510.0956
 running in docker is working. the issue remains in delay,
 gacha-sticker commands not working, sticker commands

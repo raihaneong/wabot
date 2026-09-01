@@ -6,12 +6,6 @@ feature
 - AI knowledge retrieval
 
 --
-Name: Umamusume Trainer Class
-ID: 120363406343353135@g.us
-
-Sticker & out of topic => 120363426915771477@g.us
-
---
 !ngomong
 B8gJV1IhpuegLxdpXFOE
 
@@ -64,15 +58,6 @@ archive all sticker in a group
 !summary
 jumlah stiker terkirim di hari ini
 
----
-
-src/
-tts.js
-llm.js
-sticker.js
-sticker-caption.js
-doc/
-doc.md
 README.md
 
 ---
