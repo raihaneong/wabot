@@ -5,7 +5,7 @@ import fs from "fs";
 import path from "path";
 
 async function sendGachaStickers(chat, limit) {
-  const stickersDir = "D:/mv/2/tmc/whatsapp dual stickers";
+  const stickersDir = config.stickerFolder;
   if (!fs.existsSync(stickersDir)) {
     await chat.sendMessage("folder stickers enggak ada");
     return;
