@@ -1,5 +1,5 @@
-import Databse from "better-sqlite3";
-const db = new Databse("./data/db.sqlite");
+import Database from "better-sqlite3";
+const db = new Database("./data/db.sqlite");
 
 db.exec(`
 CREATE TABLE IF NOT EXISTS listened_groups(
