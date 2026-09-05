@@ -10,11 +10,11 @@
     "test": "echo \"Error: no test specified\" && exit 1",
     "vps": "node index-mini.js",
     "AI": "node AI.js",
-    "start": "node index.js",
-    "start:old": "node index-old.js",
-    "dev": "nodemon --delay 3 index.js",
-    "dev:old": "nodemon --delay 8 index-old.js",
-    "dev:fihir": "nodemon --delay 3 index-fihir.js"
+    "start": "node src\\index.js",
+    "start:old": "node src\\index-old.js",
+    "dev": "nodemon --delay 3 src\\index.js",
+    "dev:old": "nodemon --delay 8 src\\index-old.js",
+    "dev:fihir": "nodemon --delay 3 src\\index-fihir.js"
   },
   "dependencies": {
     "@openrouter/sdk": "^1.2.88",
