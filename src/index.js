@@ -1,7 +1,7 @@
 import "dotenv/config";
 import wwebjs from "whatsapp-web.js";
 import qrcode from "qrcode-terminal";
-import { sendGachaStickers, formatMsAsMinSecond } from "./sticker.js";
+import { sendGachaStickers } from "./sticker.js";
 import { db } from "./db.js";
 import { handleAI } from "./ai.js";
 import { handlePlay } from "./play.js";
@@ -47,7 +47,6 @@ client.on("auth_failure", (msg) => {
 
 let isReady = false;
 let autoStickerEnabled = false;
-let gachaSticker10CooldownUntil = 0;
 
 client.on("ready", () => {
   isReady = true;
@@ -135,7 +134,7 @@ async function handleMessage(msg) {
 
     if (msg.body === "K") {
       await msg.reply(
-        ["qwer", "qwer2", "qwer3", "gacha-sticker", "auto-sticker", "P", "M", "participants", "erase <number>", "K", "MM"].join("\n")
+        ["qwer", "qwer2", "qwer3", "gacha-sticker [amount]", "auto-sticker", "P", "M", "participants", "erase <number>", "K", "MM"].join("\n")
       );
     }
 
@@ -190,32 +189,18 @@ async function handleMessage(msg) {
       return;
     }
 
-    // Gacha sticker 10 command with 10 min cooldown
-    if (lower === ".gacha-sticker-10") {
-      if (
-        gachaSticker10CooldownUntil &&
-        Date.now() < gachaSticker10CooldownUntil
-      ) {
-        const remainingMs = gachaSticker10CooldownUntil - Date.now();
-        return msg.reply(`Gacha cooldown: ${formatMsAsMinSecond(remainingMs)}`);
+    const gachaMatch = lower.match(/^\.gacha-sticker(?:\s+(\S+))?$/);
+    if (gachaMatch) {
+      const amount = Number(gachaMatch[1] || 1);
+
+      if (!Number.isInteger(amount) || amount < 1) {
+        return msg.reply("Usage: .gacha-sticker [amount], amount must be a positive integer.");
       }
-      gachaSticker10CooldownUntil = Date.now() + 5 * 60 * 1000; // 5 minutes
-      await sendGachaStickers(client, msg.from, 10);
-      return;
-    }
 
-    // Gacha sticker 67 command (bot-only)
-    if (lower === ".gacha-sticker-67") {
-      // if (!msg.fromMe) {
-      //   return msg.reply("cuma bowleh bot");
-      // }
-      await sendGachaStickers(client, msg.from, 67);
-      return;
-    }
+      if (amount > 100) {
+        return msg.reply("You can request at most 100 stickers.");
+      }
 
-    if (msg.body === ".gacha-sticker") {
-      let amount = msg.body.split(" ")[1];
-      if (!amount) amount = 1;
       await sendGachaStickers(client, msg.from, amount);
       return;
     }

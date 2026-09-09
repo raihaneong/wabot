@@ -1,16 +1,19 @@
 import wwebjs from "whatsapp-web.js";
-import ffmpeg from "fluent-ffmpeg";
 import fs from "fs";
 import path from "path";
 import dotenv from "dotenv";
+import config from "../config/config.json" with { type: "json" }  ;
 
 dotenv.config();
 
 async function sendGachaStickers(client, chatId, limit) {
-  const stickersDir = process.env.STICKER_FOLDER;
-  if (!fs.existsSync(stickersDir)) {
-    await client.sendMessage(chatId, "folder stickers enggak ada");
-    return;
+  if (!Number.isInteger(limit) || limit < 1 || limit > 100) {
+    throw new RangeError("Sticker amount must be a number between 1 and 100.");
+  }
+
+  const stickersDir = config.stickerFolder;
+  if (!stickersDir) {
+    throw new Error("STICKER_FOLDER configuration is not set.");
   }
 
   const files = fs.readdirSync(stickersDir).filter((file) => {
@@ -37,107 +40,6 @@ async function sendGachaStickers(client, chatId, limit) {
   }
 }
 
-async function createWebpStickerFromMedia(mediaData, mimeType, captionText) {
-  const fontSize = 60;
-  const maxChars = getMaxCharsPerLine(fontSize);
-  const lines = wrapCaption(captionText, maxChars, 2);
-  const lineHeight = fontSize + 10;
-  const yStart = 512 - 50 - (lines.length - 1) * lineHeight;
-  const rawText = lines.join("\n");
-  const drawText = escapeFfmpegDrawtext(rawText);
-  const hasStroke = !isEmojiOnly(captionText);
-  const strokeParams = hasStroke ? ":bordercolor=black:borderw=3" : "";
-  const fontFile = isEmojiOnly(captionText)
-    ? "C\\:/Windows/Fonts/seguiemj.ttf"
-    : "C\\:/Windows/Fonts/arial.ttf";
-
-  if (mimeType.startsWith("image/")) {
-    return addCaptionToImage(mediaData, captionText, fontSize);
-  }
-
-  const ext = mimeType === "image/gif" ? "gif" : "mp4";
-  const tempInput = path.join(__dirname, `temp_input.${ext}`);
-  const tempOutput = path.join(__dirname, "temp_output.webp");
-  fs.writeFileSync(tempInput, Buffer.from(mediaData, "base64"));
-
-  await new Promise((resolve, reject) => {
-    ffmpeg(tempInput)
-      .videoFilters([
-        "scale=512:512:force_original_aspect_ratio=decrease",
-        "pad=512:512:(ow-iw)/2:(oh-ih)/2",
-        `drawtext=text='${drawText}':fontfile='${fontFile}':fontsize=${fontSize}:fontcolor=white:x=(w-text_w)/2:y=${yStart}${strokeParams}`,
-        "fps=15",
-      ])
-      .duration(3)
-      .outputOptions([
-        "-vcodec",
-        "libwebp",
-        "-loop",
-        "0",
-        "-an",
-        "-lossless",
-        "0",
-        "-qscale",
-        "50",
-        "-preset",
-        "default",
-        "-r",
-        "15",
-      ])
-      .output(tempOutput)
-      .on("end", resolve)
-      .on("error", reject)
-      .run();
-  });
-
-  const outputBuffer = fs.readFileSync(tempOutput);
-  fs.unlinkSync(tempInput);
-  fs.unlinkSync(tempOutput);
-  return outputBuffer.toString("base64");
-}
-
-async function handleStickerCaption(msg, commandPrefix = ".sticker-caption") {
-  const caption = msg.body.slice(commandPrefix.length).trim();
-  if (!caption)
-    return msg.reply(`tulis captionnya. ${commandPrefix} hello world`);
-
-  let targetMsg = msg;
-  if (msg.hasQuotedMsg) targetMsg = await msg.getQuotedMessage();
-  if (!targetMsg.hasMedia) {
-    return msg.reply(
-      "direply dulu video/gambarnya, terus ketik .sticker-caption",
-    );
-  }
-
-  const media = await targetMsg.downloadMedia();
-  if (!media) return msg.reply("entah kenapa, enggak bisa. jadi yaudahlah");
-  const isImage = media.mimetype.startsWith("image/");
-  const isVideo = media.mimetype.startsWith("video/");
-  if (!isImage && !isVideo)
-    return msg.reply("stiker mah cuma bisa gambar/video doang bjir");
-
-  try {
-    const captionedBase64 = await createWebpStickerFromMedia(
-      media.data,
-      media.mimetype,
-      caption,
-    );
-    const captionedMedia = new wwebjs.MessageMedia(
-      "image/webp",
-      captionedBase64,
-      "sticker",
-    );
-    await msg.reply(captionedMedia, null, {
-      sendMediaAsSticker: true,
-      stickerName: "Sticker random",
-      stickerAuthor: "Departemen Stira",
-    });
-  } catch (err) {
-    console.error("Caption sticker error:", err);
-    await msg.reply("gagal bikin stiker dengan caption, jadi yaudahlah");
-  }
-}
-
 function formatMsAsMinSecond(ms) {
   const totalSeconds = Math.ceil(ms / 1000);
   const hours = Math.floor(totalSeconds / 3600);
@@ -149,5 +51,4 @@ function formatMsAsMinSecond(ms) {
 export {
   sendGachaStickers,
   formatMsAsMinSecond,
-  handleStickerCaption,
 };
