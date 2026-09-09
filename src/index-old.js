@@ -9,8 +9,8 @@ import { handleGroupClose, handleGroupOpen } from "./groupClose.js";
 import { handleStickerCaption, sendGachaStickers } from "./sticker.js";
 import { handleAI } from "./ai.js";
 import { formatMsAsMinSecond } from "./sticker.js";
-import { setAfk, getAfk, clearAfk, listAfkByChat } from "./afkStore.js";
-import { registerTelemetry } from "./telemetry.js";
+import { setAfk, getAfk, clearAfk, listAfkByChat } from "./db.js";
+import { registerTelemetry } from "./logger.js";
 
 function bareId(value) {
   return String(value || "").split("@")[0];
