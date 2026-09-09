@@ -38,6 +38,9 @@ async function sendAudio(msg, videoId, title) {
         "-x",
         "--audio-format",
         "mp3",
+        "-S",
+        "abr:128",
+        "--max-filesize", "15M",
         "-o",
         filePath,
         `https://youtu.be/${videoId}`,
@@ -75,7 +78,13 @@ async function searchYouTube(query) {
   return await new Promise((resolve, reject) => {
     const child = spawn(
       "yt-dlp",
-      ["--get-title", "--get-id", "--max-downloads", "5", `ytsearch5:${query}`],
+      [
+        "--print",
+        "%(title)s\n%(artist,uploader)s\n%(duration_string)s\n%(id)s",
+        "--max-downloads",
+        "5",
+        `ytsearch5:${query}`,
+      ],
       { stdio: ["ignore", "pipe", "pipe"] },
     );
 
@@ -98,12 +107,14 @@ async function searchYouTube(query) {
         .filter(Boolean);
 
       const results = [];
-      for (let i = 0; i < lines.length; i += 2) {
+      for (let i = 0; i < lines.length; i += 4) {
         const title = lines[i];
-        const id = lines[i + 1];
+        const artist = lines[i + 1];
+        const duration = lines[i + 2];
+        const id = lines[i + 3];
 
         if (title && id) {
-          results.push({ title, id });
+          results.push({ title, artist, duration, id });
         }
       }
 
@@ -143,7 +154,7 @@ export async function handlePlay(msg) {
 
     let replyText = "Choose a number:\n";
     results.forEach((result, index) => {
-      replyText += `${index + 1}. ${result.title}\n`;
+      replyText += `${index + 1}. ${result.title} - ${result.artist} - ${result.duration}\n`;
     });
 
     const sentMsg = await msg.reply(replyText);
