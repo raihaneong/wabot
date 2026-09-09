@@ -1,7 +1,10 @@
+import "dotenv/config";
 import wwebjs from "whatsapp-web.js";
 import qrcode from "qrcode-terminal";
 import { sendGachaStickers, formatMsAsMinSecond } from "./sticker.js";
 import { db } from "./db.js";
+import { handleAI } from "./ai.js";
+import { handlePlay } from "./play.js";
 // import { listenedGroupsLogger, generalGroupsLogger } from "./src/logger.js";
 // import { config } from "./config.js";
 
@@ -118,6 +121,16 @@ client.on("message_create", async (msg) => {
     // spew out incoming message to the terminal
     // console.log("Received message:", msg.body);
     // generalGroupsLogger.info(`${chat.name} | ${user} | ${msg.body}`);
+
+    if (lower.includes("fihir")) {
+      await msg.reply("blah blah blah");
+    }
+
+    if (await handlePlay(msg)) return;
+
+    if (msg.body?.trim().startsWith(".ai")) {
+      return handleAI(msg);
+    }
 
     //
     //
