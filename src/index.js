@@ -6,9 +6,13 @@ import { db } from "./db.js";
 import { handleAI } from "./ai.js";
 import { handlePlay } from "./play.js";
 // import { listenedGroupsLogger, generalGroupsLogger } from "./src/logger.js";
-// import { config } from "./config.js";
+import config from "../config/config.json" with { type: "json" }  ;
 
 const { Client, LocalAuth, MessageMedia } = wwebjs;
+
+const browserPath = process.platform === 'win32'
+  ? config.bravePathWindows
+  : config.chromiumPathLinux;   
 
 const client = new Client({
   authStrategy: new LocalAuth({}),
@@ -24,8 +28,7 @@ const client = new Client({
       //   "--single-process",
       //   "--disable-gpu",
     ],
-    // executablePath:
-    // "C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe",
+    executablePath: browserPath
   },
 });
 
@@ -113,14 +116,16 @@ async function performErase(chat, msg, requestedCount) {
   );
 }
 
+async function handleMessage(msg) {
+    const lower = (msg.body || "").trim().toLowerCase();
 
-client.on("message_create", async (msg) => {
   if (!isReady) return;
   recordMessage(msg.from, msg);
   try {
     // spew out incoming message to the terminal
     // console.log("Received message:", msg.body);
     // generalGroupsLogger.info(`${chat.name} | ${user} | ${msg.body}`);
+
 
     if (lower.includes("fihir")) {
       await msg.reply("blah blah blah");
@@ -131,14 +136,6 @@ client.on("message_create", async (msg) => {
     if (msg.body?.trim().startsWith(".ai")) {
       return handleAI(msg);
     }
-
-    //
-    //
-    // Test dev
-    //
-    //
-
-    const lower = (msg.body || "").trim().toLowerCase();
 
     if (msg.body === "menu") {
       await client.sendMessage(
@@ -361,6 +358,11 @@ client.on("message_create", async (msg) => {
 } catch (error) {
     console.error("Message handler error:", error);
   }
+}
+
+
+client.on("message_create", async (msg) => {
+  await handleMessage(msg);
 });
 
 client.setMaxListeners(60);
