@@ -214,7 +214,6 @@ async function handleMessage(msg) {
         });
       } catch (err) {
         console.error("Caption sticker error:", err);
-        await msg.reply(err.message);
       }
     }
 
