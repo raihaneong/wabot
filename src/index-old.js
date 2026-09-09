@@ -6,7 +6,7 @@ import path from "path";
 import { handleDownloadVideo, handleDownloadAudio } from "./downloader.js";
 import { handleArchiveMedia } from "./archive.js";
 import { handleGroupClose, handleGroupOpen } from "./groupClose.js";
-import { handleStickerCaption, sendGachaStickers } from "./sticker.js";
+import { sendGachaStickers } from "./sticker.js";
 import { handleAI } from "./ai.js";
 import { formatMsAsMinSecond } from "./sticker.js";
 import { setAfk, getAfk, clearAfk, listAfkByChat } from "./db.js";
@@ -232,7 +232,6 @@ async function handleMessage(msg) {
         ".dl <link>",
         ".dl-audio <link>",
         ".sticker",
-        ".sticker-caption <text>",
         ".afk <alasan>",
         ".afk-list",
         ".gacha-sticker",
@@ -373,9 +372,6 @@ async function handleMessage(msg) {
     return handleArchiveMedia(msg);
   }
 
-  if (lower.startsWith(".sticker-caption ")) {
-    return handleStickerCaption(msg, ".sticker-caption");
-  }
   if (lower.startsWith("/dev")) {
     const profilePic = await chat.getProfilePicUrl();
     msg.reply(profilePic);
