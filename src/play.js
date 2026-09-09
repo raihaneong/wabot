@@ -40,7 +40,7 @@ async function sendAudio(msg, videoId, title) {
         "mp3",
         "-S",
         "abr:128",
-        "--max-filesize", "15M",
+        "-f", "bestaudio[filesize<15M]",
         "-o",
         filePath,
         `https://youtu.be/${videoId}`,
