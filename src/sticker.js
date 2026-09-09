@@ -1,12 +1,13 @@
 import wwebjs from "whatsapp-web.js";
-import sharp from "sharp";
 import ffmpeg from "fluent-ffmpeg";
 import fs from "fs";
 import path from "path";
-import config  from "../config/config.json" with { type: "json" };
+import dotenv from "dotenv";
+
+dotenv.config();
 
 async function sendGachaStickers(client, chatId, limit) {
-  const stickersDir = config.stickerFolder;
+  const stickersDir = process.env.STICKER_FOLDER;
   if (!fs.existsSync(stickersDir)) {
     await client.sendMessage(chatId, "folder stickers enggak ada");
     return;
@@ -34,86 +35,6 @@ async function sendGachaStickers(client, chatId, limit) {
       stickerAuthor: "Departemen Stira",
     });
   }
-}
-
-function getMaxCharsPerLine(fontSize = 80, stickerWidth = 512, padding = 20) {
-  const charWidth = fontSize * 0.6;
-  return Math.max(1, Math.floor((stickerWidth - padding) / charWidth));
-}
-
-function wrapCaption(text, maxCharsPerLine = 12, maxLines = 2) {
-  const words = text.trim().split(/\s+/).slice(0, 5);
-  const tokens = [];
-  for (const word of words) {
-    if (word.length <= maxCharsPerLine) {
-      tokens.push(word);
-    } else {
-      for (let i = 0; i < word.length; i += maxCharsPerLine) {
-        tokens.push(word.slice(i, i + maxCharsPerLine));
-      }
-    }
-  }
-
-  const lines = [];
-  let line = "";
-  for (const token of tokens) {
-    const candidate = line ? `${line} ${token}` : token;
-    if (candidate.length > maxCharsPerLine && line) {
-      lines.push(line);
-      line = token;
-      if (lines.length >= maxLines) break;
-    } else {
-      line = candidate;
-    }
-  }
-  if (line && lines.length < maxLines) lines.push(line);
-  return lines;
-}
-
-function escapeFfmpegDrawtext(text) {
-  return text.replace(/'/g, "\\'").replace(/:/g, "\\:");
-}
-
-function isEmojiOnly(text) {
-  const emojisOnly = /^[\p{Emoji}\s]*$/u.test(text.trim());
-  return emojisOnly && text.trim().length > 0;
-}
-
-async function addCaptionToImage(mediaData, captionText, fontSize = 80) {
-  const maxChars = getMaxCharsPerLine(fontSize);
-  const lines = wrapCaption(captionText, maxChars, 2);
-  const lineHeight = Math.round(fontSize * 1.1);
-  const yStart = 512 - 30 - (lines.length - 1) * lineHeight;
-
-  const hasStroke = !isEmojiOnly(captionText);
-  const strokeWidth = hasStroke ? "3" : "0";
-  const tspans = lines
-    .map(
-      (line, idx) =>
-        `<tspan x="50%" dy="${idx === 0 ? 0 : lineHeight}">${line}</tspan>`,
-    )
-    .join("");
-
-  const svg = `
-    <svg width="512" height="512">
-      <text
-        x="50%"
-        y="${yStart}"
-        font-size="${fontSize}"
-        font-family="Arial"
-        fill="white"
-        text-anchor="middle"
-        font-weight="bold"
-        ${hasStroke ? `stroke="black" stroke-width="${strokeWidth}"` : ""}
-      >${tspans}</text>
-    </svg>`;
-
-  const outputBuffer = await sharp(Buffer.from(mediaData, "base64"))
-    .resize(512, 512, { fit: "cover" })
-    .composite([{ input: Buffer.from(svg), blend: "over" }])
-    .webp()
-    .toBuffer();
-  return outputBuffer.toString("base64");
 }
 
 async function createWebpStickerFromMedia(mediaData, mimeType, captionText) {
@@ -226,7 +147,6 @@ function formatMsAsMinSecond(ms) {
 }
 
 export {
-  addCaptionToImage,
   sendGachaStickers,
   formatMsAsMinSecond,
   handleStickerCaption,
