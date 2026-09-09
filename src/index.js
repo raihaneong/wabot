@@ -135,7 +135,7 @@ async function handleMessage(msg) {
 
     if (msg.body === "K") {
       await msg.reply(
-        ["qwer", "qwer2", "qwer3", "gacha-sticker", "auto-sticker", "P", "M", "participants", "erase <number>", "K"].join("\n")
+        ["qwer", "qwer2", "qwer3", "gacha-sticker", "auto-sticker", "P", "M", "participants", "erase <number>", "K", "MM"].join("\n")
       );
     }
 

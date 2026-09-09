@@ -6,6 +6,7 @@ import { spawn } from "child_process";
 const { MessageMedia } = wwebjs;
 const LIBRARY_PATH = "./audio_library";
 const searchCache = new Map();
+const AUDIO_EXTENSIONS = new Set([".mp3", ".m4a", ".wav", ".ogg", ".opus"]);
 
 if (!fs.existsSync(LIBRARY_PATH)) {
   fs.mkdirSync(LIBRARY_PATH, { recursive: true });
@@ -74,6 +75,34 @@ async function sendAudio(msg, videoId, title) {
   }
 }
 
+function getLibraryFiles() {
+  return fs
+    .readdirSync(LIBRARY_PATH, { withFileTypes: true })
+    .filter(
+      (entry) =>
+        entry.isFile() &&
+        AUDIO_EXTENSIONS.has(path.extname(entry.name).toLowerCase()),
+    )
+    .map((entry) => entry.name)
+    .sort((left, right) => left.localeCompare(right));
+}
+
+async function sendLibraryAudio(msg, fileName) {
+  const filePath = path.resolve(LIBRARY_PATH, fileName);
+
+  if (!fs.existsSync(filePath)) {
+    await msg.reply("That audio file is no longer available.");
+    return;
+  }
+
+  try {
+    await msg.reply(MessageMedia.fromFilePath(filePath));
+  } catch (error) {
+    console.error("Error sending library audio:", error);
+    await msg.reply(`Error sending audio: ${error.message}`);
+  }
+}
+
 async function searchYouTube(query) {
   return await new Promise((resolve, reject) => {
     const child = spawn(
@@ -136,9 +165,30 @@ export async function handlePlay(msg) {
   const message = msg.body?.trim() || "";
   const chatId = msg.from;
 
-  if (message.startsWith("M")) {
+  if (message.toUpperCase() === "MM") {
+    const files = getLibraryFiles();
+
+    if (!files.length) {
+      await msg.reply("The audio library is empty.");
+      return true;
+    }
+
+    const sentMsg = await msg.reply(
+      `Audio library:\n${files
+        .map((fileName, index) => `${index + 1}. ${path.parse(fileName).name}`)
+        .join("\n")}\n\nReply with a number to receive the audio.`,
+    );
+    searchCache.set(chatId, {
+      type: "library",
+      files,
+      originalMsg: sentMsg,
+    });
+    return true;
+  }
+
+  if (message.startsWith("M ") || message === "M") {
     msg.react("👀");
-    const query = message.slice(5).trim();
+    const query = message.slice(1).trim();
 
     if (!query) {
       await msg.reply("Usage: M <song or artist>");
@@ -158,17 +208,23 @@ export async function handlePlay(msg) {
     });
 
     const sentMsg = await msg.reply(replyText);
-    searchCache.set(chatId, { results, originalMsg: sentMsg });
+    searchCache.set(chatId, { type: "search", results, originalMsg: sentMsg });
     return true;
   }
 
-  if (msg.hasQuotedMsg) {
-    const quoted = await msg.getQuotedMessage();
+  if (msg.hasQuotedMsg || /^\d+$/.test(message)) {
     const cache = searchCache.get(chatId);
+    const quoted = msg.hasQuotedMsg ? await msg.getQuotedMessage() : null;
+    const isMatchingLibrarySelection =
+      cache?.type === "library" && !msg.hasQuotedMsg;
+    const isMatchingQuotedSelection =
+      quoted && cache?.originalMsg.id._serialized === quoted.id._serialized;
 
-    if (cache && cache.originalMsg.id._serialized === quoted.id._serialized) {
+    if (cache && (isMatchingLibrarySelection || isMatchingQuotedSelection)) {
       const index = Number.parseInt(message, 10) - 1;
-      const selected = cache.results[index];
+      const selected = cache.type === "library"
+        ? cache.files[index]
+        : cache.results[index];
 
       if (!selected) {
         await msg.reply("Please choose a valid number from the list.");
@@ -176,8 +232,13 @@ export async function handlePlay(msg) {
       }
 
       searchCache.delete(chatId);
-      await cache.originalMsg.edit(`🔊 Now playing: ${selected.title}`);
-      await sendAudio(msg, selected.id, selected.title);
+      if (cache.type === "library") {
+        await cache.originalMsg.edit(`🔊 Sending: ${path.parse(selected).name}`);
+        await sendLibraryAudio(msg, selected);
+      } else {
+        await cache.originalMsg.edit(`🔊 Now playing: ${selected.title}`);
+        await sendAudio(msg, selected.id, selected.title);
+      }
       return true;
     }
   }
