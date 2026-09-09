@@ -1,7 +1,7 @@
 {
     "prefix": ["!", ".", "#", "$", "/"],
-    "chromePathWindows": "C:\\Program Files (x86)\\Google\\Chrome\\Application\\chrome.exe",
-    "chromePathLinux": "/usr/bin/google-chrome-stable",
+    "bravePathWindows": "C:\\Program Files\\BraveSoftware\\Brave-Browser\\Application\\brave.exe",
+    "chromiumPathLinux": "/snap/bin/chromium",
     "ismuted": false,
     "gachaSticker5CooldownUntil": null,
     "gachaSticker10CooldownUntil": null,
