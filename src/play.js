@@ -136,12 +136,12 @@ export async function handlePlay(msg) {
   const message = msg.body?.trim() || "";
   const chatId = msg.from;
 
-  if (message.startsWith(".play")) {
+  if (message.startsWith("M")) {
     msg.react("👀");
     const query = message.slice(5).trim();
 
     if (!query) {
-      await msg.reply("Usage: .play <song or artist>");
+      await msg.reply("Usage: M <song or artist>");
       return true;
     }
 
