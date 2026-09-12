@@ -22,9 +22,9 @@ function sanitizeFileName(value) {
 }
 
 
-async function sendAudio(msg, videoId, title) {
+async function sendAudio(msg, videoId, title, channel) {
   const safeTitle = sanitizeFileName(title);
-  const filePath = path.resolve(LIBRARY_PATH, `${safeTitle}-${videoId}.mp3`);
+  const filePath = path.resolve(LIBRARY_PATH, `${safeTitle}-${channel}-${videoId}.mp3`);
 
   if (fs.existsSync(filePath)) {
     console.log("Serving from cache:", title);
@@ -139,7 +139,9 @@ async function searchYouTube(query) {
       "yt-dlp",
       [
         "--print",
-        "%(title)s\n%(artist,uploader)s\n%(duration_string)s\n%(id)s",
+        "%(title)s\n%(channel)s\n%(duration_string)s\n%(id)s",
+        "--encoding",
+        "UTF-8",
         "--max-downloads",
         "5",
         `ytsearch5:${query}`,
@@ -168,12 +170,12 @@ async function searchYouTube(query) {
       const results = [];
       for (let i = 0; i < lines.length; i += 4) {
         const title = lines[i];
-        const artist = lines[i + 1];
+        const channel = lines[i + 1];
         const duration = lines[i + 2];
         const id = lines[i + 3];
 
         if (title && id) {
-          results.push({ title, artist, duration, id });
+          results.push({ title, channel, duration, id });
         }
       }
 
@@ -222,7 +224,7 @@ export async function handlePlay(msg) {
     const query = message.slice(1).trim();
 
     if (!query) {
-      await msg.reply("Usage: M <song or artist>");
+      await msg.reply("Usage: M <song or channel>");
       return true;
     }
 
@@ -235,7 +237,7 @@ export async function handlePlay(msg) {
 
     let replyText = "Choose a number:\n";
     results.forEach((result, index) => {
-      replyText += `${index + 1}. ${result.title} - ${result.artist} - ${result.duration}\n`;
+      replyText += `${index + 1}. ${result.title} - ${result.channel} - ${result.duration}\n`;
     });
 
     const sentMsg = await msg.reply(replyText);
@@ -274,7 +276,7 @@ export async function handlePlay(msg) {
         }
       } else {
         await cache.originalMsg.edit(`🔊 Now playing: ${selected.title}`);
-        await sendAudio(msg, selected.id, selected.title);
+        await sendAudio(msg, selected.id, selected.title, selected.channel);
       }
       return true;
     }
