@@ -219,7 +219,7 @@ export async function handlePlay(msg) {
     return true;
   }
 
-  if (message.startsWith("M ") || message === ".play") {
+  if (message.startsWith("M ") || message.startsWith(".play ")) {
     msg.react("👀");
     const query = message.slice(1).trim();
 
