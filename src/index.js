@@ -7,6 +7,7 @@ import { handleAI } from "./ai.js";
 import { handlePlay } from "./play.js";
 // import { listenedGroupsLogger, generalGroupsLogger } from "./src/logger.js";
 import config from "../config/config.json" with { type: "json" }  ;
+import { setTimeout as delay } from "timers/promises";
 
 const { Client, LocalAuth, MessageMedia } = wwebjs;
 
@@ -320,6 +321,27 @@ async function handleMessage(msg) {
       if (lower === "me") {
     const contact = await msg.getContact();
     await msg.reply(contact);
+  }
+
+if (lower.startsWith("spam")) {
+  const amount = Math.min(parseInt(lower.split(" ")[1], 10) || 1, 100);
+
+  const quoted = await msg.getQuotedMessage();
+  if (!quoted) return;
+
+  if (quoted.type === "chat") {
+    for (let i = 0; i < amount; i++) {
+      await client.sendMessage(msg.from, quoted.body);
+      await delay(200);
+    }
+  } else if (quoted.type === "sticker") {
+    const media = await quoted.downloadMedia();
+    for (let i = 0; i < amount; i++) {
+      await client.sendMessage(msg.from, media, { sendMediaAsSticker: true });
+      await delay(200);
+    }
+  }
+
   }
 } catch (error) {
     console.error("Message handler error:", error);
