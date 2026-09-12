@@ -118,7 +118,7 @@ async function performErase(chat, msg, requestedCount) {
   );
 }
 
-let isSiderActive = false;
+let isSiderActive = true;
 
 
 async function handleMessage(msg) {
