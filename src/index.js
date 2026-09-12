@@ -9,6 +9,7 @@ import { handlePlay } from "./play.js";
 import config from "../config/config.json" with { type: "json" };
 import { setTimeout as delay } from "timers/promises";
 import { silentReader } from "./reader.js"
+import { moveToRemote, startScheduledMoves } from "./cloud.js";
 
 const { Client, LocalAuth, MessageMedia } = wwebjs;
 
@@ -362,6 +363,13 @@ async function handleMessage(msg) {
       return;
     }
 
+    if (lower === "backup"){
+      await startScheduledMoves();
+      await moveToRemote();
+      msg.reply("ran")
+    }
+    
+
   } catch (error) {
     console.error("Message handler error:", error);
   }
@@ -375,4 +383,5 @@ client.on("message_create", async (msg) => {
 
 client.setMaxListeners(60);
 
+startScheduledMoves();
 client.initialize();

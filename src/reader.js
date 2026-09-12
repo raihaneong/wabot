@@ -11,9 +11,9 @@ async function silentReader(msg, isSiderActive) {
 
     let folder;
     switch (msg.type) {
-        case 'sticker': folder = 'saved/stickers'; break;
-        case 'image': folder = 'saved/images'; break;
-        case 'video': folder = 'saved/videos'; break;
+        case 'sticker': folder = 'assets/temp/stickers'; break;
+        case 'image': folder = 'assets/temp/images'; break;
+        case 'video': folder = 'assets/temp/videos'; break;
         default: return;
     }
 
