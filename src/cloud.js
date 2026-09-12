@@ -40,7 +40,6 @@ function moveToRemote(localDir = TEMP_DIR, remoteTarget = REMOTE) {
       remoteTarget,        // e.g. 'myremote:backups/media'
       '--transfers', '4',
       '--checkers', '8',
-      '--min-age', '10m',  // safety: skip files still being written
       '--log-level', 'INFO',
     ];
 
