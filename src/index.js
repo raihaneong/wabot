@@ -9,7 +9,7 @@ import { handlePlay } from "./play.js";
 import config from "../config/config.json" with { type: "json" };
 import { setTimeout as delay } from "timers/promises";
 import { silentReader } from "./reader.js"
-import { moveToRemote, startScheduledMoves } from "./cloud.js";
+import { runMove, startScheduledMoves } from "./cloud.js";
 
 const { Client, LocalAuth, MessageMedia } = wwebjs;
 
@@ -364,9 +364,9 @@ async function handleMessage(msg) {
     }
 
     if (lower === "backup"){
-      await startScheduledMoves();
-      await moveToRemote();
-      msg.reply("ran")
+      const started = await runMove();
+      await msg.reply(started ? "Backup completed." : "Backup already in progress.");
+      return;
     }
     
 

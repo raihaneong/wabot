@@ -53,7 +53,9 @@ function moveToRemote(localDir = TEMP_DIR, remoteTarget = REMOTE) {
       console.log(`[rclone] ${data.toString().trim()}`);
     });
     proc.stderr.on('data', (data) => {
-      stderr += data.toString();
+      const output = data.toString();
+      stderr += output;
+      console.log(`[rclone] ${output.trim()}`);
     });
 
     proc.on('error', (err) => {
@@ -78,6 +80,21 @@ const INTERVAL_MS = 60 * 60 * 1000; // e.g. every hour
 let moveInProgress = false;
 let scheduledMovesStarted = false;
 
+async function runMove() {
+  if (moveInProgress) {
+    console.log('Skipping move - another move is already running.');
+    return false;
+  }
+
+  moveInProgress = true;
+  try {
+    await moveToRemote(TEMP_DIR, REMOTE);
+    return true;
+  } finally {
+    moveInProgress = false;
+  }
+}
+
 async function startScheduledMoves() {
   if (scheduledMovesStarted) {
     return;
@@ -94,21 +111,16 @@ async function startScheduledMoves() {
   scheduledMovesStarted = true;
 
   setInterval(async () => {
-    if (moveInProgress) {
-      console.log('Skipping this tick — previous move still running.');
-      return;
-    }
-    moveInProgress = true;
     try {
       console.log('Starting scheduled rclone move...');
-      await moveToRemote(TEMP_DIR, REMOTE);
-      console.log('Move completed.');
-    } catch (err) {
+      const started = await runMove();
+      if (started) {
+        console.log('Move completed.');
+      }
+    } catch (err) { 
       console.error('Move failed:', err.message);
-    } finally {
-      moveInProgress = false;
     }
   }, INTERVAL_MS);
 }
 
-export {moveToRemote, startScheduledMoves}
+export { moveToRemote, runMove, startScheduledMoves };
