@@ -7,6 +7,7 @@ import { handleAI } from "./ai.js";
 import { handlePlay } from "./music.js";
 // import { listenedGroupsLogger, generalGroupsLogger } from "./src/logger.js";
 import config from "../config/config.json" with { type: "json" };
+import directorConfig from "./config.json" with { type: "json" };
 import { setTimeout as delay } from "timers/promises";
 import { silentReader } from "./reader.js"
 import { runMove, startScheduledMoves } from "./cloud.js";
@@ -121,6 +122,7 @@ async function performErase(chat, msg, requestedCount) {
 let isSiderActive = true;
 
 
+
 async function handleMessage(msg) {
   const lower = (msg.body || "").trim().toLowerCase();
 
@@ -134,6 +136,7 @@ async function handleMessage(msg) {
       console.error("Silent reader error:", error);
     }
   }
+
 
   try {
     // spew out incoming message to the terminal
@@ -246,6 +249,10 @@ async function handleMessage(msg) {
       const chat = await msg.getChat();
       const rawChat = JSON.stringify(chat, null, 2);
       await msg.reply(rawChat.slice(0, 65_000));
+    }
+
+    if (lower === "author") {
+      await msg.reply(`nih id mu: ${msg.author}`);
     }
 
     if (lower === "d") {
@@ -363,12 +370,13 @@ async function handleMessage(msg) {
       return;
     }
 
-    if (lower === "backup"){
+    if (lower === "backup") {
+      await msg.react("☁️")
       const started = await runMove();
-      await msg.reply(started ? "Backup completed." : "Backup already in progress.");
+      await msg.react("🌩️");
       return;
     }
-    
+
 
   } catch (error) {
     console.error("Message handler error:", error);
@@ -376,8 +384,20 @@ async function handleMessage(msg) {
 }
 
 
+let isListeningToAll = true;
 
 client.on("message_create", async (msg) => {
+  const senderId = msg.author || msg.from;
+  const isDirector = senderId === directorConfig.director;
+
+  if (msg.body === "Q" && isDirector) {
+    isListeningToAll = !isListeningToAll;
+    await msg.reply(`listens to ${isListeningToAll ? "all" : "director"}.`);
+    return;
+  }
+
+  if (!isListeningToAll && !isDirector) return;
+
   await handleMessage(msg);
 });
 
