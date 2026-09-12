@@ -24,7 +24,11 @@ function sanitizeFileName(value) {
 
 async function sendAudio(msg, videoId, title, channel) {
   const safeTitle = sanitizeFileName(title);
-  const filePath = path.resolve(LIBRARY_PATH, `${safeTitle}-${channel}-${videoId}.mp3`);
+  const safeChannel = sanitizeFileName(channel);
+  const filePath = path.resolve(
+    LIBRARY_PATH,
+    `${safeTitle}-${safeChannel}-${videoId}.mp3`,
+  );
 
   if (fs.existsSync(filePath)) {
     console.log("Serving from cache:", title);
