@@ -4,7 +4,7 @@ import qrcode from "qrcode-terminal";
 import { sendGachaStickers } from "./sticker.js";
 import { db } from "./db.js";
 import { handleAI } from "./ai.js";
-import { handlePlay } from "./play.js";
+import { handlePlay } from "./music.js";
 // import { listenedGroupsLogger, generalGroupsLogger } from "./src/logger.js";
 import config from "../config/config.json" with { type: "json" };
 import { setTimeout as delay } from "timers/promises";
@@ -149,7 +149,7 @@ async function handleMessage(msg) {
 
     if (msg.body === "K") {
       await msg.reply(
-        ["qwer", "qwer2", "qwer3", "gacha-sticker [amount]", "auto-sticker", "P", "M", "participants", "erase <number>", "K", "MM"].join("\n")
+        ["qwer", "qwer2", "qwer3", "gacha-sticker [amount]", "auto-sticker", "P", "M", "participants", "erase <number>", "K", "MM", "MD"].join("\n")
       );
     }
 
