@@ -6,14 +6,15 @@ import { db } from "./db.js";
 import { handleAI } from "./ai.js";
 import { handlePlay } from "./play.js";
 // import { listenedGroupsLogger, generalGroupsLogger } from "./src/logger.js";
-import config from "../config/config.json" with { type: "json" }  ;
+import config from "../config/config.json" with { type: "json" };
 import { setTimeout as delay } from "timers/promises";
+import { silentReader } from "./reader.js"
 
 const { Client, LocalAuth, MessageMedia } = wwebjs;
 
 const browserPath = process.platform === 'win32'
   ? config.bravePathWindows
-  : config.chromiumPathLinux;   
+  : config.chromiumPathLinux;
 
 const client = new Client({
   authStrategy: new LocalAuth({}),
@@ -116,11 +117,23 @@ async function performErase(chat, msg, requestedCount) {
   );
 }
 
+let isSiderActive = false;
+
+
 async function handleMessage(msg) {
-    const lower = (msg.body || "").trim().toLowerCase();
+  const lower = (msg.body || "").trim().toLowerCase();
 
   if (!isReady) return;
   recordMessage(msg.from, msg);
+
+  if (isSiderActive && msg.hasMedia) {
+    try {
+      await silentReader(msg, true);
+    } catch (error) {
+      console.error("Silent reader error:", error);
+    }
+  }
+
   try {
     // spew out incoming message to the terminal
     // console.log("Received message:", msg.body);
@@ -249,104 +262,111 @@ async function handleMessage(msg) {
     }
 
 
-  if (lower.startsWith("erase")) {
-    const parts = lower.trim().split(/\s+/);
-    const requestedCount = parseInt(parts[1], 10);
+    if (lower.startsWith("erase")) {
+      const parts = lower.trim().split(/\s+/);
+      const requestedCount = parseInt(parts[1], 10);
 
-    if (!parts[1] || isNaN(requestedCount) || requestedCount < 1) {
-      return msg.reply("Usage: erase [number], e.g. `erase 50`");
-    }
+      if (!parts[1] || isNaN(requestedCount) || requestedCount < 1) {
+        return msg.reply("Usage: erase [number], e.g. `erase 50`");
+      }
 
-    const botId = client.info?.wid?._serialized;
-    const botParticipant = chat.participants?.find(
-      (p) => p.id?._serialized === botId,
-    );
-    const botIsAdmin = Boolean(
-      chat.isGroup && (botParticipant?.isAdmin || botParticipant?.isSuperAdmin),
-    );
-    if (!botIsAdmin) {
-      return msg.reply(
-        chat.isGroup
-          ? "Bot is not an admin, so I cannot delete messages."
-          : "This command only works in groups.",
+      const botId = client.info?.wid?._serialized;
+      const botParticipant = chat.participants?.find(
+        (p) => p.id?._serialized === botId,
       );
-    }
-
-    const CONFIRM_THRESHOLD = 50;
-    const MAX_ERASE = 200;
-    const count = Math.min(requestedCount, MAX_ERASE);
-
-    if (count >= CONFIRM_THRESHOLD) {
-      pendingErasures.set(chat.id._serialized, {
-        count,
-        timestamp: Date.now(),
-      });
-      return msg.reply(
-        `This will delete the last ${count} messages for everyone. Any admin can reply "confirm erase" within 60 seconds to proceed.`,
+      const botIsAdmin = Boolean(
+        chat.isGroup && (botParticipant?.isAdmin || botParticipant?.isSuperAdmin),
       );
+      if (!botIsAdmin) {
+        return msg.reply(
+          chat.isGroup
+            ? "Bot is not an admin, so I cannot delete messages."
+            : "This command only works in groups.",
+        );
+      }
+
+      const CONFIRM_THRESHOLD = 50;
+      const MAX_ERASE = 200;
+      const count = Math.min(requestedCount, MAX_ERASE);
+
+      if (count >= CONFIRM_THRESHOLD) {
+        pendingErasures.set(chat.id._serialized, {
+          count,
+          timestamp: Date.now(),
+        });
+        return msg.reply(
+          `This will delete the last ${count} messages for everyone. Any admin can reply "confirm erase" within 60 seconds to proceed.`,
+        );
+      }
+
+      return performErase(chat, msg, count);
     }
 
-    return performErase(chat, msg, count);
-  }
+    if (lower === "confirm erase") {
+      const pending = pendingErasures.get(chat.id._serialized);
 
-  if (lower === "confirm erase") {
-    const pending = pendingErasures.get(chat.id._serialized);
+      if (!pending) {
+        return msg.reply("No pending erase to confirm.");
+      }
 
-    if (!pending) {
-      return msg.reply("No pending erase to confirm.");
-    }
+      if (Date.now() - pending.timestamp > 60_000) {
+        pendingErasures.delete(chat.id._serialized);
+        return msg.reply("Confirmation expired. Please run the erase command again.");
+      }
 
-    if (Date.now() - pending.timestamp > 60_000) {
+      const confirmerId = msg.author || msg.from;
+      const confirmerParticipant = chat.participants?.find(
+        (p) => p.id?._serialized === confirmerId,
+      );
+      const confirmerIsAdmin = Boolean(
+        confirmerParticipant?.isAdmin || confirmerParticipant?.isSuperAdmin,
+      );
+
+      if (!confirmerIsAdmin) {
+        return msg.reply("Only a group admin can confirm this.");
+      }
+
       pendingErasures.delete(chat.id._serialized);
-      return msg.reply("Confirmation expired. Please run the erase command again.");
+      return performErase(chat, msg, pending.count);
     }
 
-    const confirmerId = msg.author || msg.from;
-    const confirmerParticipant = chat.participants?.find(
-      (p) => p.id?._serialized === confirmerId,
-    );
-    const confirmerIsAdmin = Boolean(
-      confirmerParticipant?.isAdmin || confirmerParticipant?.isSuperAdmin,
-    );
 
-    if (!confirmerIsAdmin) {
-      return msg.reply("Only a group admin can confirm this.");
+    if (lower === "me") {
+      const contact = await msg.getContact();
+      await msg.reply(contact);
     }
 
-    pendingErasures.delete(chat.id._serialized);
-    return performErase(chat, msg, pending.count);
-  }
-  
+    if (lower.startsWith("spam")) {
+      const amount = Math.min(parseInt(lower.split(" ")[1], 10) || 1, 100);
 
-      if (lower === "me") {
-    const contact = await msg.getContact();
-    await msg.reply(contact);
-  }
+      const quoted = await msg.getQuotedMessage();
+      if (!quoted) return;
 
-if (lower.startsWith("spam")) {
-  const amount = Math.min(parseInt(lower.split(" ")[1], 10) || 1, 100);
+      if (quoted.type === "chat") {
+        for (let i = 0; i < amount; i++) {
+          await client.sendMessage(msg.from, quoted.body);
+          await delay(200);
+        }
+      } else if (quoted.type === "sticker") {
+        const media = await quoted.downloadMedia();
+        for (let i = 0; i < amount; i++) {
+          await client.sendMessage(msg.from, media, { sendMediaAsSticker: true });
+          await delay(200);
+        }
+      }
 
-  const quoted = await msg.getQuotedMessage();
-  if (!quoted) return;
-
-  if (quoted.type === "chat") {
-    for (let i = 0; i < amount; i++) {
-      await client.sendMessage(msg.from, quoted.body);
-      await delay(200);
     }
-  } else if (quoted.type === "sticker") {
-    const media = await quoted.downloadMedia();
-    for (let i = 0; i < amount; i++) {
-      await client.sendMessage(msg.from, media, { sendMediaAsSticker: true });
-      await delay(200);
+    if (lower === "sider") {
+      isSiderActive = !isSiderActive;
+      await msg.reply(`silent reader is ${isSiderActive ? "enabled" : "disabled"}`);
+      return;
     }
-  }
 
-  }
-} catch (error) {
+  } catch (error) {
     console.error("Message handler error:", error);
   }
 }
+
 
 
 client.on("message_create", async (msg) => {
