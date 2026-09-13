@@ -6,8 +6,7 @@ import { db } from "./db.js";
 import { handleAI } from "./ai.js";
 import { handlePlay } from "./music.js";
 // import { listenedGroupsLogger, generalGroupsLogger } from "./src/logger.js";
-import config from "../config/config.json" with { type: "json" };
-import directorConfig from "./config.json" with { type: "json" };
+import config from "./config.json" with { type: "json" };
 import { setTimeout as delay } from "timers/promises";
 import { silentReader } from "./reader.js"
 import { runMove, startScheduledMoves } from "./cloud.js";
@@ -128,14 +127,6 @@ async function handleMessage(msg) {
 
   if (!isReady) return;
   recordMessage(msg.from, msg);
-
-  if (isSiderActive && msg.hasMedia) {
-    try {
-      await silentReader(msg, true);
-    } catch (error) {
-      console.error("Silent reader error:", error);
-    }
-  }
 
 
   try {
@@ -344,22 +335,37 @@ async function handleMessage(msg) {
       await msg.reply(contact);
     }
 
-    if (lower.startsWith("spam")) {
-      const amount = Math.min(parseInt(lower.split(" ")[1], 10) || 1, 100);
+    if (lower.startsWith("spam ")) {
+      if (msg.author != config.director) {
+        msg.reply("waduh, sebaiknya jangan")
+        return
+      }
+      const spamMatch = lower.match(/^spam\s+(\d+)$/);
 
-      const quoted = await msg.getQuotedMessage();
-      if (!quoted) return;
+      if (spamMatch) {
+        const amount = Number(spamMatch[1]);
 
-      if (quoted.type === "chat") {
-        for (let i = 0; i < amount; i++) {
-          await client.sendMessage(msg.from, quoted.body);
-          await delay(200);
+        if (amount < 1 || amount > 100) {
+          return msg.reply("Jumlah harus antara 1 dan 100.");
         }
-      } else if (quoted.type === "sticker") {
-        const media = await quoted.downloadMedia();
-        for (let i = 0; i < amount; i++) {
-          await client.sendMessage(msg.from, media, { sendMediaAsSticker: true });
-          await delay(200);
+
+        const quoted = await msg.getQuotedMessage();
+        if (!quoted) return;
+
+        if (quoted.type === "chat") {
+          for (let i = 0; i < amount; i++) {
+            await client.sendMessage(msg.from, quoted.body);
+            await delay(200);
+          }
+        } else if (quoted.type === "sticker") {
+          const media = await quoted.downloadMedia();
+
+          for (let i = 0; i < amount; i++) {
+            await client.sendMessage(msg.from, media, {
+              sendMediaAsSticker: true,
+            });
+            await delay(200);
+          }
         }
       }
 
@@ -384,19 +390,23 @@ async function handleMessage(msg) {
 }
 
 
-let isListeningToAll = true;
+const internalGroup = [
+  config.groupPerennial,
+  config.groupStirhytm,
+];
 
 client.on("message_create", async (msg) => {
-  const senderId = msg.author || msg.from;
-  const isDirector = senderId === directorConfig.director;
+  const senderId = msg.from;
 
-  if (msg.body === "Q" && isDirector) {
-    isListeningToAll = !isListeningToAll;
-    await msg.reply(`listens to ${isListeningToAll ? "all" : "director"}.`);
-    return;
+  if (isSiderActive && msg.hasMedia) {
+    try {
+      await silentReader(msg, true);
+    } catch (error) {
+      console.error("Silent reader error:", error);
+    }
   }
 
-  if (!isListeningToAll && !isDirector) return;
+  if (!internalGroup.includes(senderId)) return;
 
   await handleMessage(msg);
 });

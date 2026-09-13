@@ -2,7 +2,7 @@ import wwebjs from "whatsapp-web.js";
 import fs from "fs";
 import path from "path";
 import dotenv from "dotenv";
-import config from "../config/config.json" with { type: "json" }  ;
+import config from "./config.json" with { type: "json" }  ;
 
 dotenv.config();
 
