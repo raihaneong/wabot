@@ -2,7 +2,11 @@ import {exec} from "child_process";
 import {promisify} from "util";
 import fs from "fs";
 import path from "path";
-import {logDate} from "./log.js";
+import {logDate} from "./logger.js";
+import { dirname } from "path";
+import { fileURLToPath } from "url";
+
+const __dirname = dirname(fileURLToPath(import.meta.url));
 
 const execAsync = promisify(exec);
 
@@ -17,7 +21,7 @@ async function handleArchiveMedia(msg) {
 
     // Check for media: either in quoted message or current message
     let targetMsg = msg;
-    if (msg.react("📩")) {
+    if (msg.hasQuotedMsg) {
       targetMsg = await msg.getQuotedMessage();
     }
 

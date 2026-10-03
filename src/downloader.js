@@ -3,8 +3,10 @@ import { exec } from "child_process";
 import { promisify } from "util";
 import fs from "fs";
 import path from "path";
+import { fileURLToPath } from "url";
 
 const execAsync = promisify(exec);
+const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
 async function handleDownloadVideo(msg, url) {
   console.log(`[DOWNLOAD VIDEO] Request from ${msg.from} for URL: ${url}`);
@@ -12,6 +14,7 @@ async function handleDownloadVideo(msg, url) {
     await msg.react("⏳");
 
     const tempDir = path.join(__dirname, "..", "tmp");
+    fs.mkdirSync(tempDir, { recursive: true });
     const timestamp = Date.now();
     const outputPattern = path.join(tempDir, `wabot_video_${timestamp}`);
 
@@ -19,7 +22,7 @@ async function handleDownloadVideo(msg, url) {
       console.log(`Starting yt-dlp download for: ${url}`);
       // Force MP4 format with 720p resolution for WhatsApp compatibility
       await execAsync(
-        `yt-dlp -f "best[ext=mp4]" -S "res:720" --cookies-from-browser firefox:k6urnm7e.default-release-1765937955021 -o "${outputPattern}.%(ext)s" "${url}"`,
+        `yt-dlp -f "best[ext=mp4]" -S "res:720" --cookies ./cookies.txt -o "${outputPattern}.%(ext)s" "${url}"`,
       );
       console.log("yt-dlp MP4 command completed successfully");
 
@@ -110,13 +113,14 @@ async function handleDownloadAudio(msg, url) {
     await msg.react("⏳");
 
     const tempDir = path.join(__dirname, "..", "tmp");
+    fs.mkdirSync(tempDir, { recursive: true });
     const timestamp = Date.now();
     const outputPattern = path.join(tempDir, `wabot_audio_${timestamp}`);
 
     try {
       console.log(`Starting yt-dlp audio download for: ${url}`);
       await execAsync(
-        `yt-dlp -x --audio-format mp3 --cookies-from-browser firefox:k6urnm7e.default-release-1765937955021 -o "${outputPattern}.%(ext)s" "${url}"`,
+        `yt-dlp -x --audio-format mp3 --cookies ./cookies.txt -o "${outputPattern}.%(ext)s" "${url}"`,
         { maxBuffer: 10 * 1024 * 1024 },
       );
       console.log("yt-dlp audio command completed successfully");

@@ -21,9 +21,14 @@ function sanitizeFileName(value) {
   );
 }
 
-async function sendAudio(msg, videoId, title) {
+
+async function sendAudio(msg, videoId, title, channel) {
   const safeTitle = sanitizeFileName(title);
-  const filePath = path.resolve(LIBRARY_PATH, `${safeTitle}-${videoId}.mp3`);
+  const safeChannel = sanitizeFileName(channel);
+  const filePath = path.resolve(
+    LIBRARY_PATH,
+    `${safeTitle}-${safeChannel}-${videoId}.mp3`,
+  );
 
   if (fs.existsSync(filePath)) {
     console.log("Serving from cache:", title);
@@ -92,14 +97,43 @@ async function sendLibraryAudio(msg, fileName) {
 
   if (!fs.existsSync(filePath)) {
     await msg.reply("That audio file is no longer available.");
-    return;
+    return false;
   }
 
   try {
     await msg.reply(MessageMedia.fromFilePath(filePath));
+    return true;
   } catch (error) {
     console.error("Error sending library audio:", error);
     await msg.reply(`Error sending audio: ${error.message}`);
+    return false;
+  }
+}
+
+async function deleteLibraryAudio(msg, fileName) {
+  const filePath = path.resolve(LIBRARY_PATH, fileName);
+
+  if (
+    path.dirname(filePath) !== path.resolve(LIBRARY_PATH) ||
+    !AUDIO_EXTENSIONS.has(path.extname(fileName).toLowerCase())
+  ) {
+    await msg.reply("That is not a valid library audio file.");
+    return false;
+  }
+
+  if (!fs.existsSync(filePath)) {
+    await msg.reply("That audio file is no longer available.");
+    return false;
+  }
+
+  try {
+    await fs.promises.unlink(filePath);
+    await msg.reply(`Deleted: ${path.parse(fileName).name}`);
+    return true;
+  } catch (error) {
+    console.error("Error deleting library audio:", error);
+    await msg.reply(`Error deleting audio: ${error.message}`);
+    return false;
   }
 }
 
@@ -109,7 +143,9 @@ async function searchYouTube(query) {
       "yt-dlp",
       [
         "--print",
-        "%(title)s\n%(artist,uploader)s\n%(duration_string)s\n%(id)s",
+        "%(title)s\n%(channel)s\n%(duration_string)s\n%(id)s",
+        "--encoding",
+        "UTF-8",
         "--max-downloads",
         "5",
         `ytsearch5:${query}`,
@@ -138,12 +174,12 @@ async function searchYouTube(query) {
       const results = [];
       for (let i = 0; i < lines.length; i += 4) {
         const title = lines[i];
-        const artist = lines[i + 1];
+        const channel = lines[i + 1];
         const duration = lines[i + 2];
         const id = lines[i + 3];
 
         if (title && id) {
-          results.push({ title, artist, duration, id });
+          results.push({ title, channel, duration, id });
         }
       }
 
@@ -165,7 +201,8 @@ export async function handlePlay(msg) {
   const message = msg.body?.trim() || "";
   const chatId = msg.from;
 
-  if (message.toUpperCase() === "MM") {
+  const libraryCommand = message.toUpperCase();
+  if (libraryCommand === "MM" || libraryCommand === "MD") {
     const files = getLibraryFiles();
 
     if (!files.length) {
@@ -174,24 +211,24 @@ export async function handlePlay(msg) {
     }
 
     const sentMsg = await msg.reply(
-      `Audio library:\n${files
+      `${libraryCommand === "MD" ? "Audio library (delete after sending)" : "Audio library"}:\n${files
         .map((fileName, index) => `${index + 1}. ${path.parse(fileName).name}`)
         .join("\n")}\n\nReply with a number to receive the audio.`,
     );
     searchCache.set(chatId, {
-      type: "library",
+      type: libraryCommand === "MD" ? "delete-library" : "library",
       files,
       originalMsg: sentMsg,
     });
     return true;
   }
 
-  if (message.startsWith("M ") || message === "M") {
+  if (message.startsWith("M ") || message.startsWith(".play ")) {
     msg.react("👀");
     const query = message.slice(1).trim();
 
     if (!query) {
-      await msg.reply("Usage: M <song or artist>");
+      await msg.reply("Usage: M <song or channel>");
       return true;
     }
 
@@ -204,7 +241,7 @@ export async function handlePlay(msg) {
 
     let replyText = "Choose a number:\n";
     results.forEach((result, index) => {
-      replyText += `${index + 1}. ${result.title} - ${result.artist} - ${result.duration}\n`;
+      replyText += `${index + 1}. ${result.title} - ${result.channel} - ${result.duration}\n`;
     });
 
     const sentMsg = await msg.reply(replyText);
@@ -216,13 +253,14 @@ export async function handlePlay(msg) {
     const cache = searchCache.get(chatId);
     const quoted = msg.hasQuotedMsg ? await msg.getQuotedMessage() : null;
     const isMatchingLibrarySelection =
-      cache?.type === "library" && !msg.hasQuotedMsg;
+      (cache?.type === "library" || cache?.type === "delete-library") &&
+      !msg.hasQuotedMsg;
     const isMatchingQuotedSelection =
       quoted && cache?.originalMsg.id._serialized === quoted.id._serialized;
 
     if (cache && (isMatchingLibrarySelection || isMatchingQuotedSelection)) {
       const index = Number.parseInt(message, 10) - 1;
-      const selected = cache.type === "library"
+      const selected = cache.type === "library" || cache.type === "delete-library"
         ? cache.files[index]
         : cache.results[index];
 
@@ -232,12 +270,17 @@ export async function handlePlay(msg) {
       }
 
       searchCache.delete(chatId);
-      if (cache.type === "library") {
-        await cache.originalMsg.edit(`🔊 Sending: ${path.parse(selected).name}`);
-        await sendLibraryAudio(msg, selected);
+      if (cache.type === "library" || cache.type === "delete-library") {
+        if (cache.type === "delete-library") {
+          await cache.originalMsg.edit(`🗑️ Deleting: ${path.parse(selected).name}`);
+          await deleteLibraryAudio(msg, selected);
+        } else {
+          await cache.originalMsg.edit(`🔊 Sending: ${path.parse(selected).name}`);
+          await sendLibraryAudio(msg, selected);
+        }
       } else {
         await cache.originalMsg.edit(`🔊 Now playing: ${selected.title}`);
-        await sendAudio(msg, selected.id, selected.title);
+        await sendAudio(msg, selected.id, selected.title, selected.channel);
       }
       return true;
     }
