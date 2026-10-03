@@ -7,9 +7,8 @@
   "type": "module",
   "main": "index.js",
   "scripts": {
-    "start": "node src/index.js",
-    "start:old": "node src/index-old.js",
-    "dev": "nodemon --delay 3 src/index.js"
+    "start": "node index.js",
+    "dev": "nodemon --delay 3 index.js"
   },
   "dependencies": {
     "@openrouter/sdk": "^1.2.88",
