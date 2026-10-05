@@ -20,7 +20,7 @@ export function createBotCommands(client) {
     autoStickerEnabled: false,
     isMuted: config.ismuted ?? false,
     gachaSticker10CooldownUntil: config.gachaSticker10CooldownUntil ?? null,
-    isSiderActive: true,
+    isSiderActive: false,
   };
 
   const MAX_BUFFER = 200;
