@@ -71,7 +71,7 @@ export function createBot() {
         console.log("[telemetry] enabled");
       }
 
-      startScheduledMoves();
+      // startScheduledMoves();
       client.initialize();
     },
   };
