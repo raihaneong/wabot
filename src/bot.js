@@ -9,10 +9,6 @@ import { startScheduledMoves } from "./cloud.js";
 const { Client, LocalAuth } = wwebjs;
 
 export function createBot() {
-  const browserPath = process.platform === "win32"
-    ? config.bravePathWindows
-    : config.chromiumPathLinux;
-
   const client = new Client({
     authStrategy: new LocalAuth({}),
     puppeteer: {
@@ -21,7 +17,6 @@ export function createBot() {
         "--disable-setuid-sandbox",
         "--no-zygote",
       ],
-      executablePath: browserPath,
     },
   });
 

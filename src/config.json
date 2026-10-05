@@ -4,8 +4,6 @@
     "groupPerennial": "120363426383219623@g.us",
     "groupStirhytm": "120363407534685472@g.us",
         "prefix": ["!", ".", "#", "$", "/"],
-    "bravePathWindows": "C:\\Program Files\\BraveSoftware\\Brave-Browser\\Application\\brave.exe",
-    "chromiumPathLinux": "/snap/bin/chromium",
     "ismuted": false,
     "gachaSticker5CooldownUntil": null,
     "gachaSticker10CooldownUntil": null,
