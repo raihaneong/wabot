@@ -7,6 +7,7 @@ import { handleAI } from "./ai.js";
 import { handlePlay } from "./music.js";
 import { handleDownloadVideo, handleDownloadAudio } from "./downloader.js";
 import { handleArchiveMedia } from "./archive.js";
+import { safeReact } from "./reaction.js";
 import config from "./config.json" with { type: "json" };
 import { setTimeout as delay } from "timers/promises";
 import { runMove } from "./cloud.js";
@@ -212,7 +213,7 @@ export function createBotCommands(client) {
     try {
       if (await handlePlay(msg)) return;
 
-      if (lower === ".test") return msg.react("😼");
+      if (lower === ".test") return safeReact(msg, "😼");
 
       if (lower === ".mancing") {
         state.isMuted = true;
@@ -310,7 +311,7 @@ export function createBotCommands(client) {
 
       if (msg.body === "qwer") {
         try {
-          await msg.react("👀");
+          await safeReact(msg, "👀");
           const media = await MessageMedia.fromFilePath("./assets/lullaby.mp3");
           await msg.reply(media);
         } catch (error) {
@@ -322,7 +323,7 @@ export function createBotCommands(client) {
 
       if (msg.body === "qwer2") {
         try {
-          await msg.react("👀");
+          await safeReact(msg, "👀");
           const media = await MessageMedia.fromFilePath(
             "./assets/p76zdwx1u68h1.webp",
           );
@@ -336,7 +337,7 @@ export function createBotCommands(client) {
 
       if (msg.body === "qwer3") {
         try {
-          await msg.react("👀");
+          await safeReact(msg, "👀");
           const media = await MessageMedia.fromFilePath("./assets/cos_oguri.mp4");
           await msg.reply(media, { caption: "ini caption" });
         } catch (error) {
@@ -522,9 +523,9 @@ export function createBotCommands(client) {
       }
 
       if (lower === "backup") {
-        await msg.react("☁️");
+        await safeReact(msg, "☁️");
         const started = await runMove();
-        await msg.react("🌩️");
+        await safeReact(msg, "🌩️");
         return;
       }
     } catch (error) {

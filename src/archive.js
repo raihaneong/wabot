@@ -5,6 +5,7 @@ import path from "path";
 import {logDate} from "./logger.js";
 import { dirname } from "path";
 import { fileURLToPath } from "url";
+import { safeReact } from "./reaction.js";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 
@@ -17,7 +18,7 @@ async function handleArchiveMedia(msg) {
   );
 
   try {
-    await msg.react("⏳");
+    await safeReact(msg, "⏳");
 
     // Check for media: either in quoted message or current message
     let targetMsg = msg;
@@ -26,7 +27,7 @@ async function handleArchiveMedia(msg) {
     }
 
     if (!targetMsg.hasMedia) {
-      await msg.react("❌");
+      await safeReact(msg, "❌");
       return msg.reply("cuma bisa arsip media, bukan teks bjir");
     }
 
@@ -34,7 +35,7 @@ async function handleArchiveMedia(msg) {
     const media = await targetMsg.downloadMedia();
 
     if (!media) {
-      await msg.react("❌");
+      await safeReact(msg, "❌");
       return msg.reply("gagal download media");
     }
 
@@ -75,7 +76,7 @@ async function handleArchiveMedia(msg) {
     await execAsync(rcloneCmd);
 
     console.log(`${logDate()} ✅ Rclone copy completed successfully`);
-    await msg.react("✅");
+    await safeReact(msg, "✅");
     await msg.reply(`
         media berhasil diarsip
         
@@ -92,7 +93,7 @@ async function handleArchiveMedia(msg) {
     }
   } catch (error) {
     console.error(`${logDate()} Archive error:`, error);
-    await msg.react("❌");
+    await safeReact(msg, "❌");
     return msg.reply(
       `gagal arsip media: ${error.message || "error tidak diketahui"}`,
     );

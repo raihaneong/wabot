@@ -2,6 +2,7 @@ import wwebjs from "whatsapp-web.js";
 import fs from "fs";
 import path from "path";
 import { spawn } from "child_process";
+import { safeReact } from "./reaction.js";
 
 const { MessageMedia } = wwebjs;
 const LIBRARY_PATH = "./audio_library";
@@ -36,7 +37,7 @@ async function sendAudio(msg, videoId, title, channel) {
     return await msg.reply(media);
   }
 
-  msg.react("👀");
+  await safeReact(msg, "👀");
 
   try {
     await new Promise((resolve, reject) => {
@@ -224,7 +225,7 @@ export async function handlePlay(msg) {
   }
 
   if (message.startsWith("M ") || message.startsWith(".play ")) {
-    msg.react("👀");
+    await safeReact(msg, "👀");
     const query = message.slice(1).trim();
 
     if (!query) {

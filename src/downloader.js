@@ -4,6 +4,7 @@ import { promisify } from "util";
 import fs from "fs";
 import path from "path";
 import { fileURLToPath } from "url";
+import { safeReact } from "./reaction.js";
 
 const execAsync = promisify(exec);
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
@@ -11,7 +12,7 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url));
 async function handleDownloadVideo(msg, url) {
   console.log(`[DOWNLOAD VIDEO] Request from ${msg.from} for URL: ${url}`);
   try {
-    await msg.react("⏳");
+    await safeReact(msg, "⏳");
 
     const tempDir = path.join(__dirname, "..", "tmp");
     fs.mkdirSync(tempDir, { recursive: true });
@@ -34,7 +35,7 @@ async function handleDownloadVideo(msg, url) {
 
       if (!downloadedFile) {
         console.log("Available files in tmp/:", files);
-        await msg.react("❌");
+        await safeReact(msg, "❌");
         return msg.reply("file download enggak ketemu");
       }
 
@@ -50,7 +51,7 @@ async function handleDownloadVideo(msg, url) {
         if (fs.existsSync(filePath)) {
           fs.unlinkSync(filePath);
         }
-        await msg.react("⚠️");
+        await safeReact(msg, "⚠️");
         return msg.reply("file terlalu besar (>100MB), gak bisa dikirim");
       }
 
@@ -68,7 +69,7 @@ async function handleDownloadVideo(msg, url) {
           fileBuffer.toString("base64"),
           downloadedFile,
         );
-        await msg.react("✅");
+        await safeReact(msg, "✅");
         await msg.reply(media);
         console.log("Media sent successfully");
       } catch (sendError) {
@@ -81,7 +82,7 @@ async function handleDownloadVideo(msg, url) {
           "Size:",
           fileSizeInMB,
         );
-        await msg.react("❌");
+        await safeReact(msg, "❌");
         return msg.reply("gagal kirim media, tapi file sudah didownload");
       }
 
@@ -96,21 +97,21 @@ async function handleDownloadVideo(msg, url) {
       }
     } catch (error) {
       console.error("Download error:", error);
-      await msg.react("❌");
+      await safeReact(msg, "❌");
       return msg.reply(
         "gagal download video. coba link lain atau cek formatnya",
       );
     }
   } catch (err) {
     console.error("Download command error:", err);
-    await msg.react("❌");
+    await safeReact(msg, "❌");
   }
 }
 
 async function handleDownloadAudio(msg, url) {
   console.log(`[DOWNLOAD AUDIO] Request from ${msg.from} for URL: ${url}`);
   try {
-    await msg.react("⏳");
+    await safeReact(msg, "⏳");
 
     const tempDir = path.join(__dirname, "..", "tmp");
     fs.mkdirSync(tempDir, { recursive: true });
@@ -133,7 +134,7 @@ async function handleDownloadAudio(msg, url) {
 
       if (!downloadedFile) {
         console.log("Available files in tmp/:", files);
-        await msg.react("❌");
+        await safeReact(msg, "❌");
         return msg.reply("file download enggak ketemu");
       }
 
@@ -149,7 +150,7 @@ async function handleDownloadAudio(msg, url) {
         if (fs.existsSync(filePath)) {
           fs.unlinkSync(filePath);
         }
-        await msg.react("⚠️");
+        await safeReact(msg, "⚠️");
         return msg.reply(
           "file terlalu besar (>16MB), gak bisa dikirim di grup WhatsApp",
         );
@@ -162,7 +163,7 @@ async function handleDownloadAudio(msg, url) {
           fileBuffer.toString("base64"),
           downloadedFile,
         );
-        await msg.react("✅");
+        await safeReact(msg, "✅");
         await msg.reply(media);
         console.log("Audio media sent successfully");
       } catch (sendError) {
@@ -175,7 +176,7 @@ async function handleDownloadAudio(msg, url) {
           "Size:",
           fileSizeInMB,
         );
-        await msg.react("❌");
+        await safeReact(msg, "❌");
         return msg.reply("gagal kirim audio, tapi file sudah didownload");
       }
 
@@ -190,12 +191,12 @@ async function handleDownloadAudio(msg, url) {
       }
     } catch (error) {
       console.error("Download audio error:", error);
-      await msg.react("❌");
+      await safeReact(msg, "❌");
       return msg.reply("gagal download audio. coba link lain");
     }
   } catch (err) {
     console.error("Download audio command error:", err);
-    await msg.react("❌");
+    await safeReact(msg, "❌");
   }
 }
 
