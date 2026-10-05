@@ -224,7 +224,7 @@ export async function handlePlay(msg) {
     return true;
   }
 
-  if (message.startsWith("M ") || message.startsWith(".play ")) {
+  if (message.startsWith("M ")) {
     await safeReact(msg, "👀");
     const query = message.slice(1).trim();
 

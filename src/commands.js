@@ -90,7 +90,6 @@ export function createBotCommands(client) {
     return [
       "Menu bot:",
       "- K / k: lihat menu ini",
-      "- .menu: tampilkan menu bantuan",
       "- .test: cek bot hidup",
       "- .sticker / .s: jadikan media jadi sticker",
       "- .afk <alasan>: aktifkan status AFK",
@@ -305,9 +304,6 @@ export function createBotCommands(client) {
         return;
       }
 
-      if (lower === ".menu") {
-        return msg.reply(buildCommandMenu());
-      }
 
       if (msg.body === "qwer") {
         try {
